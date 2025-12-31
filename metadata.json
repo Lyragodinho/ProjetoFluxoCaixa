@@ -1,0 +1,5 @@
+{
+  "name": "Feedis - Gerenciador de Fluxo de Caixa",
+  "description": "An advanced cash flow management system for businesses. It allows users to manage initial bank balances, operational inflows, and categorized outflows (operational, investment, financing) to project final cash balances.",
+  "requestFramePermissions": []
+}
