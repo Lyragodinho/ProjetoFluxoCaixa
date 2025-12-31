@@ -177,9 +177,6 @@
                                     <h3 class="text-lg font-bold">Saldos Iniciais</h3>
                                 </div>
                                 <p class="text-gray-600 text-sm flex-grow">Defina os saldos de partida.</p>
-                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
-                                    Acessar
-                                </button>
                             </div>
                         </div>
 
@@ -190,9 +187,6 @@
                                     <h3 class="text-lg font-bold">Entradas</h3>
                                 </div>
                                 <p class="text-gray-600 text-sm flex-grow">Cadastre as receitas previstas.</p>
-                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
-                                    Acessar
-                                </button>
                             </div>
                         </div>
 
@@ -203,9 +197,6 @@
                                     <h3 class="text-lg font-bold">Recebimentos</h3>
                                 </div>
                                 <p class="text-gray-600 text-sm flex-grow">Confirme as entradas de caixa.</p>
-                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
-                                    Acessar
-                                </button>
                             </div>
                         </div>
 
@@ -216,9 +207,6 @@
                                     <h3 class="text-lg font-bold">Fornecedores</h3>
                                 </div>
                                 <p class="text-gray-600 text-sm flex-grow">Gerencie contas a pagar.</p>
-                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
-                                    Acessar
-                                </button>
                             </div>
                         </div>
 
@@ -229,9 +217,6 @@
                                     <h3 class="text-lg font-bold">Saídas</h3>
                                 </div>
                                 <p class="text-gray-600 text-sm flex-grow">Registre todos os pagamentos.</p>
-                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
-                                    Acessar
-                                </button>
                             </div>
                         </div>
 
@@ -242,9 +227,6 @@
                                     <h3 class="text-lg font-bold">Inadimplência</h3>
                                 </div>
                                 <p class="text-gray-600 text-sm flex-grow">Monitore recebíveis vencidos.</p>
-                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
-                                    Acessar
-                                </button>
                             </div>
                         </div>
 
@@ -255,9 +237,7 @@
                                     <h3 class="text-lg font-bold">Fluxo de Caixa</h3>
                                 </div>
                                 <p class="text-gray-600 text-sm flex-grow">Visualize o relatório completo.</p>
-                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
-                                    Acessar
-                                </button>
+                                <!-- Botão removido para não conflitar com o clique do card -->
                             </div>
                         </div>
                     </div>
@@ -795,6 +775,507 @@
             report: { name: 'Fluxo de Caixa', desc: 'Visualize o relatório completo.', icon: '📊' }
         };
 
+        // Early function definitions to avoid reference errors
+        function updateReportModule() {
+            console.log('📊 updateReportModule called');
+            
+            try {
+                // Set default dates
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                
+                console.log('📊 Setting default dates...');
+                console.log('📊 First day:', firstDay.toISOString().split('T')[0]);
+                console.log('📊 Today:', today.toISOString().split('T')[0]);
+                
+                const startDateElement = document.getElementById('reportStartDate');
+                const endDateElement = document.getElementById('reportEndDate');
+                
+                console.log('📊 Start date element:', startDateElement);
+                console.log('📊 End date element:', endDateElement);
+                
+                if (startDateElement) {
+                    startDateElement.value = firstDay.toISOString().split('T')[0];
+                    console.log('✅ Start date set');
+                } else {
+                    console.error('❌ Start date element not found!');
+                }
+                
+                if (endDateElement) {
+                    endDateElement.value = today.toISOString().split('T')[0];
+                    console.log('✅ End date set');
+                } else {
+                    console.error('❌ End date element not found!');
+                }
+                
+                // Generate initial report
+                console.log('📊 Calling generateCashFlowReport...');
+                generateCashFlowReport();
+                console.log('✅ updateReportModule completed successfully');
+            } catch (error) {
+                console.error('❌ Error in updateReportModule:', error);
+            }
+        }
+
+        function generateCashFlowReport() {
+            const startDate = new Date(document.getElementById('reportStartDate').value);
+            const endDate = new Date(document.getElementById('reportEndDate').value);
+            
+            if (startDate > endDate) {
+                alert('A data inicial não pode ser maior que a data final.');
+                return;
+            }
+
+            // Filter data by date range
+            const filteredReceipts = appData.receipts.filter(receipt => {
+                const receiptDate = new Date(receipt.receiptDate);
+                return receiptDate >= startDate && receiptDate <= endDate;
+            });
+
+            const filteredOutflows = appData.outflows.filter(outflow => {
+                const outflowDate = new Date(outflow.date);
+                return outflowDate >= startDate && outflowDate <= endDate;
+            });
+
+            // Calculate totals
+            const initialBalance = appData.balances.reduce((sum, balance) => sum + balance.amount, 0);
+            const totalInflows = filteredReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+            const totalOutflows = filteredOutflows.reduce((sum, outflow) => sum + outflow.amount, 0);
+            const finalBalance = initialBalance + totalInflows - totalOutflows;
+
+            // Update summary cards
+            document.getElementById('reportInitialBalance').textContent = formatCurrency(initialBalance);
+            document.getElementById('reportTotalInflows').textContent = formatCurrency(totalInflows);
+            document.getElementById('reportTotalOutflows').textContent = formatCurrency(totalOutflows);
+            document.getElementById('reportFinalBalance').textContent = formatCurrency(finalBalance);
+
+            // Update generated date
+            document.getElementById('reportGeneratedDate').textContent = 
+                `Relatório gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`;
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value || 0);
+        }
+
+        function updateBalancesList() {
+            const balancesList = document.getElementById('balancesList');
+            const totalBalance = document.getElementById('totalBalance');
+
+            if (appData.balances.length === 0) {
+                balancesList.innerHTML = '<p class="text-sm text-gray-500">Nenhum saldo adicionado.</p>';
+                totalBalance.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.balances.forEach((balance, index) => {
+                html += `
+                    <div class="flex justify-between items-center p-2 rounded-md bg-white shadow-sm mb-2">
+                        <div class="flex items-center">
+                            <span class="font-medium">${getBankName(balance.bank)}</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-gray-800 mr-4">${formatCurrency(balance.amount)}</span>
+                            <button onclick="removeBalance(${index})" class="text-red-500 hover:text-red-700">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+                total += balance.amount;
+            });
+
+            balancesList.innerHTML = html;
+            totalBalance.textContent = formatCurrency(total);
+        }
+
+        function updateRevenuesList() {
+            const revenuesList = document.getElementById('revenuesList');
+            const totalRevenues = document.getElementById('totalRevenues');
+
+            if (appData.revenues.length === 0) {
+                revenuesList.innerHTML = '<p class="text-sm text-gray-500">Nenhuma receita adicionada.</p>';
+                totalRevenues.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.revenues.forEach((revenue, index) => {
+                html += `
+                    <div class="border rounded-md p-3 mb-2 bg-white shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800">${revenue.clientName}</div>
+                                <div class="text-sm text-gray-600">
+                                    ${revenue.documentType} ${revenue.documentNumber} | ${revenue.type}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    Emissão: ${new Date(revenue.issueDate).toLocaleDateString('pt-BR')} | 
+                                    Vencimento: ${new Date(revenue.dueDate).toLocaleDateString('pt-BR')} |
+                                    Crédito: ${new Date(revenue.creditDate).toLocaleDateString('pt-BR')}
+                                </div>
+                            </div>
+                            <div class="flex items-center ml-4">
+                                <span class="font-bold text-gray-800 mr-4">${formatCurrency(revenue.amount)}</span>
+                                <button onclick="removeRevenue(${index})" class="text-red-500 hover:text-red-700">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                total += revenue.amount;
+            });
+
+            revenuesList.innerHTML = html;
+            totalRevenues.textContent = formatCurrency(total);
+        }
+
+        function updateReceiptsModule() {
+            updateRevenueSelect();
+            updateReceiptsSummary();
+            updateReceiptsList();
+        }
+
+        function updateRevenueSelect() {
+            const revenueSelect = document.getElementById('revenueSelect');
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Filter revenues that are not yet received
+            const availableRevenues = appData.revenues.filter(revenue => {
+                const isReceived = appData.receipts.some(receipt => receipt.revenueId === revenue.id);
+                return !isReceived;
+            });
+
+            if (availableRevenues.length === 0) {
+                revenueSelect.innerHTML = '<option value="">Nenhuma receita pendente encontrada</option>';
+                document.getElementById('receivedAmount').value = '';
+                return;
+            }
+
+            let html = '<option value="">Selecione uma receita...</option>';
+            availableRevenues.forEach(revenue => {
+                const isOverdue = new Date(revenue.dueDate) < new Date(today);
+                const statusIcon = isOverdue ? '⚠️' : '📅';
+                html += `<option value="${revenue.id}">${statusIcon} ${revenue.clientName} - ${revenue.documentType} ${revenue.documentNumber} - ${formatCurrency(revenue.amount)}</option>`;
+            });
+
+            revenueSelect.innerHTML = html;
+        }
+
+        function updateReceiptsSummary() {
+            const today = new Date().toISOString().split('T')[0];
+            let pending = 0;
+            let received = 0;
+            let overdue = 0;
+            let totalValue = 0;
+
+            appData.revenues.forEach(revenue => {
+                const isReceived = appData.receipts.some(receipt => receipt.revenueId === revenue.id);
+                const isOverdue = new Date(revenue.dueDate) < new Date(today);
+
+                if (isReceived) {
+                    received++;
+                } else if (isOverdue) {
+                    overdue++;
+                } else {
+                    pending++;
+                }
+                totalValue += revenue.amount;
+            });
+
+            document.getElementById('totalPending').textContent = pending;
+            document.getElementById('totalReceived').textContent = received;
+            document.getElementById('totalOverdue').textContent = overdue;
+            document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+        }
+
+        function updateReceiptsList() {
+            const receiptsList = document.getElementById('receiptsList');
+            const totalReceivedAmount = document.getElementById('totalReceivedAmount');
+
+            if (appData.receipts.length === 0) {
+                receiptsList.innerHTML = '<p class="text-sm text-gray-500">Nenhum recebimento confirmado.</p>';
+                totalReceivedAmount.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.receipts.forEach((receipt, index) => {
+                const revenue = appData.revenues.find(r => r.id === receipt.revenueId);
+                html += `
+                    <div class="flex justify-between items-center p-2 rounded-md bg-white shadow-sm mb-2">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800">${revenue?.clientName || 'Cliente'}</div>
+                            <div class="text-sm text-gray-600">${revenue.paymentMethod} | ${new Date(receipt.receiptDate).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="font-bold text-green-600 mr-4">${formatCurrency(receipt.amount)}</span>
+                            <button onclick="removeReceipt(${index})" class="text-red-500 hover:text-red-700">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+                total += receipt.amount;
+            });
+
+            receiptsList.innerHTML = html;
+            totalReceivedAmount.textContent = formatCurrency(total);
+        }
+
+        function updateSuppliersList() {
+            const suppliersList = document.getElementById('suppliersList');
+            const totalSuppliers = document.getElementById('totalSuppliers');
+
+            if (appData.suppliers.length === 0) {
+                suppliersList.innerHTML = '<p class="text-sm text-gray-500">Nenhum fornecedor cadastrado.</p>';
+                totalSuppliers.textContent = '0';
+                return;
+            }
+
+            let html = '';
+            appData.suppliers.forEach((supplier, index) => {
+                html += `
+                    <div class="flex justify-between items-center p-2 rounded-md bg-white shadow-sm mb-2">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800">${supplier.name}</div>
+                            <div class="text-sm text-gray-600">${supplier.supplierType} | ${supplier.cashFlowType}</div>
+                        </div>
+                        <button onclick="removeSupplier(${index})" class="text-red-500 hover:text-red-700">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+            });
+
+            suppliersList.innerHTML = html;
+            totalSuppliers.textContent = appData.suppliers.length;
+        }
+
+        function updateOutflowsModule() {
+            updateOutflowSupplierSelect();
+            updateOutflowsList();
+        }
+
+        function updateOutflowSupplierSelect() {
+            const outflowSupplier = document.getElementById('outflowSupplier');
+            
+            if (appData.suppliers.length === 0) {
+                outflowSupplier.innerHTML = '<option value="">Cadastre fornecedores primeiro...</option>';
+                return;
+            }
+
+            let html = '<option value="">Selecione um fornecedor...</option>';
+            appData.suppliers.forEach(supplier => {
+                html += `<option value="${supplier.id}">${supplier.name}</option>`;
+            });
+
+            outflowSupplier.innerHTML = html;
+        }
+
+        function updateOutflowsList() {
+            const outflowsList = document.getElementById('outflowsList');
+            const totalOutflows = document.getElementById('totalOutflows');
+
+            if (appData.outflows.length === 0) {
+                outflowsList.innerHTML = '<p class="text-sm text-gray-500">Nenhum pagamento registrado.</p>';
+                totalOutflows.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.outflows.forEach((outflow, index) => {
+                html += `
+                    <div class="border rounded-md p-3 mb-2 bg-white shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800">${outflow.supplierName}</div>
+                                <div class="text-sm text-gray-600">${outflow.description} | ${outflow.paymentMethod}</div>
+                                <div class="text-sm text-gray-500">Data: ${new Date(outflow.date).toLocaleDateString('pt-BR')}</div>
+                            </div>
+                            <div class="flex items-center ml-4">
+                                <span class="font-bold text-red-600 mr-4">${formatCurrency(outflow.amount)}</span>
+                                <button onclick="removeOutflow(${index})" class="text-red-500 hover:text-red-700">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                total += outflow.amount;
+            });
+
+            outflowsList.innerHTML = html;
+            totalOutflows.textContent = formatCurrency(total);
+        }
+
+        function updateOverdueModule() {
+            updateOverdueList();
+        }
+
+        function updateOverdueList() {
+            const overdueList = document.getElementById('overdueList');
+            const overdueCount = document.getElementById('overdueCount');
+            const overdueValue = document.getElementById('overdueValue');
+            const avgDelayDays = document.getElementById('avgDelayDays');
+
+            const today = new Date().toISOString().split('T')[0];
+            const overdueRevenues = appData.revenues.filter(revenue => {
+                const isReceived = appData.receipts.some(receipt => receipt.revenueId === revenue.id);
+                return !isReceived && new Date(revenue.dueDate) < new Date(today);
+            });
+
+            if (overdueRevenues.length === 0) {
+                overdueList.innerHTML = '<p class="text-sm text-gray-500">Nenhum título vencido encontrado.</p>';
+                overdueCount.textContent = '0';
+                overdueValue.textContent = 'R$ 0,00';
+                avgDelayDays.textContent = '0';
+                return;
+            }
+
+            let html = '';
+            let totalValue = 0;
+            let totalDelayDays = 0;
+
+            overdueRevenues.forEach(revenue => {
+                const delayDays = Math.floor((new Date(today) - new Date(revenue.dueDate)) / (1000 * 60 * 60 * 24));
+                totalValue += revenue.amount;
+                totalDelayDays += delayDays;
+
+                html += `
+                    <div class="border rounded-md p-3 mb-2 bg-red-50 border-red-200">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-red-800">${revenue.clientName}</div>
+                                <div class="text-sm text-red-600">
+                                    ${revenue.documentType} ${revenue.documentNumber} | 
+                                    Vencimento: ${new Date(revenue.dueDate).toLocaleDateString('pt-BR')}
+                                </div>
+                                <div class="text-sm text-red-500">
+                                    Dias em atraso: ${delayDays} dias
+                                </div>
+                            </div>
+                            <div class="flex items-center ml-4">
+                                <span class="font-bold text-red-600 mr-4">${formatCurrency(revenue.amount)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            overdueList.innerHTML = html;
+            overdueCount.textContent = overdueRevenues.length;
+            overdueValue.textContent = formatCurrency(totalValue);
+            avgDelayDays.textContent = Math.round(totalDelayDays / overdueRevenues.length);
+        }
+
+        function getBankName(bankCode) {
+            const banks = {
+                '001': 'Banco do Brasil',
+                '033': 'Santander',
+                '237': 'Bradesco',
+                '341': 'Itaú'
+            };
+            return banks[bankCode] || bankCode;
+        }
+
+        // Global navigation system - completely different approach
+        window.navigateToModule = function(moduleId) {
+            console.log('🌍 Global navigation called for:', moduleId);
+            
+            // Hide all pages first
+            const allPages = document.querySelectorAll('.page');
+            allPages.forEach(page => {
+                page.style.display = 'none';
+            });
+            
+            // Hide all modules
+            const allModules = document.querySelectorAll('.module-content');
+            allModules.forEach(module => {
+                module.style.display = 'none';
+            });
+            
+            // Show the target module page
+            const modulePage = document.getElementById('modulePage');
+            if (modulePage) {
+                modulePage.style.display = 'block';
+            }
+            
+            // Show the specific module
+            const targetModule = document.getElementById(moduleId + 'Module');
+            if (targetModule) {
+                targetModule.style.display = 'block';
+                console.log('✅ Module displayed:', moduleId);
+                
+                // Initialize if needed
+                if (moduleId === 'report') {
+                    initializeReportModule();
+                }
+            } else {
+                console.error('❌ Module not found:', moduleId);
+            }
+        };
+
+        window.goToHomePage = function() {
+            console.log('🏠 Going to home page');
+            
+            // Hide module page
+            const modulePage = document.getElementById('modulePage');
+            if (modulePage) {
+                modulePage.style.display = 'none';
+            }
+            
+            // Show home page
+            const homePage = document.getElementById('homePage');
+            if (homePage) {
+                homePage.style.display = 'block';
+            }
+        };
+
+        function initializeReportModule() {
+            console.log('📊 Initializing report module');
+            try {
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                
+                const startDateElement = document.getElementById('reportStartDate');
+                const endDateElement = document.getElementById('reportEndDate');
+                
+                if (startDateElement) {
+                    startDateElement.value = firstDay.toISOString().split('T')[0];
+                }
+                if (endDateElement) {
+                    endDateElement.value = today.toISOString().split('T')[0];
+                }
+                
+                console.log('✅ Report module initialized');
+            } catch (error) {
+                console.error('❌ Error initializing report:', error);
+            }
+        }
+
+        // Simple wrapper functions
+        function showModule(moduleId) {
+            window.navigateToModule(moduleId);
+        }
+
+        function showHome() {
+            window.goToHomePage();
+        }
+
         // Bank names mapping
         const bankNames = {
             '001': 'Banco do Brasil',
@@ -807,6 +1288,92 @@
         const homePage = document.getElementById('homePage');
         const modulePage = document.getElementById('modulePage');
         const backBtn = document.getElementById('backBtn');
+
+        // Show module page
+        function showModule(moduleId) {
+            console.log('🔄 showModule called with moduleId:', moduleId);
+            
+            const module = modules[moduleId];
+            console.log('📋 Module found:', module);
+            
+            if (module) {
+                currentStep = moduleId;
+                
+                // Hide all module contents
+                document.querySelectorAll('.module-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                // Show/hide step wizard
+                const stepWizard = document.getElementById('stepWizard');
+                if (moduleId === 'home') {
+                    stepWizard.classList.add('hidden');
+                } else {
+                    stepWizard.classList.remove('hidden');
+                }
+
+                console.log('🎯 Showing module:', moduleId);
+
+                // Show specific module
+                if (moduleId === 'initialBalance') {
+                    console.log('🏦 Showing initial balance module');
+                    document.getElementById('initialBalanceModule').classList.remove('hidden');
+                    updateBalancesList();
+                } else if (moduleId === 'inflows') {
+                    console.log('💰 Showing inflows module');
+                    document.getElementById('inflowsModule').classList.remove('hidden');
+                    updateRevenuesList();
+                    // Set default dates
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('issueDate').value = today;
+                    document.getElementById('dueDate').value = today;
+                } else if (moduleId === 'receipts') {
+                    console.log('✅ Showing receipts module');
+                    document.getElementById('receiptsModule').classList.remove('hidden');
+                    updateReceiptsModule();
+                } else if (moduleId === 'suppliers') {
+                    console.log('🚚 Showing suppliers module');
+                    document.getElementById('suppliersModule').classList.remove('hidden');
+                    updateSuppliersList();
+                } else if (moduleId === 'outflows') {
+                    console.log('💸 Showing outflows module');
+                    document.getElementById('outflowsModule').classList.remove('hidden');
+                    updateOutflowsModule();
+                } else if (moduleId === 'overdue') {
+                    console.log('⚠️ Showing overdue module');
+                    document.getElementById('overdueModule').classList.remove('hidden');
+                    updateOverdueModule();
+                } else if (moduleId === 'report') {
+                    console.log('📊 Showing report module');
+                    const reportModule = document.getElementById('reportModule');
+                    if (reportModule) {
+                        reportModule.classList.remove('hidden');
+                        updateReportModule();
+                        console.log('✅ Report module found and shown');
+                    } else {
+                        console.error('❌ Report module element not found!');
+                    }
+                } else {
+                    console.log('📄 Showing placeholder for module:', moduleId);
+                    // Show placeholder for other modules
+                    document.getElementById('otherModules').classList.remove('hidden');
+                    document.getElementById('moduleIcon').textContent = module.icon;
+                    document.getElementById('moduleTitle').textContent = module.name;
+                    document.getElementById('moduleDesc').textContent = module.desc;
+                }
+                
+                homePage.classList.add('hidden');
+                modulePage.classList.remove('hidden');
+                
+                // Update navigation state
+                updateNavigationState();
+                updateWizardState();
+                
+                console.log('✅ Module navigation completed');
+            } else {
+                console.error('❌ Module not found for moduleId:', moduleId);
+            }
+        }
 
         // Format currency
         function formatCurrency(value) {
@@ -828,68 +1395,6 @@
             }
             
             return nextDay.toISOString().split('T')[0];
-        }
-
-        // Show module page
-        function showModule(moduleId) {
-            const module = modules[moduleId];
-            if (module) {
-                currentStep = moduleId;
-                
-                // Hide all module contents
-                document.querySelectorAll('.module-content').forEach(content => {
-                    content.classList.add('hidden');
-                });
-
-                // Show/hide step wizard
-                const stepWizard = document.getElementById('stepWizard');
-                if (moduleId === 'home') {
-                    stepWizard.classList.add('hidden');
-                } else {
-                    stepWizard.classList.remove('hidden');
-                }
-
-                // Show specific module
-                if (moduleId === 'initialBalance') {
-                    document.getElementById('initialBalanceModule').classList.remove('hidden');
-                    updateBalancesList();
-                } else if (moduleId === 'inflows') {
-                    document.getElementById('inflowsModule').classList.remove('hidden');
-                    updateRevenuesList();
-                    // Set default dates
-                    const today = new Date().toISOString().split('T')[0];
-                    document.getElementById('issueDate').value = today;
-                    document.getElementById('dueDate').value = today;
-                } else if (moduleId === 'receipts') {
-                    document.getElementById('receiptsModule').classList.remove('hidden');
-                    updateReceiptsModule();
-                } else if (moduleId === 'suppliers') {
-                    document.getElementById('suppliersModule').classList.remove('hidden');
-                    updateSuppliersList();
-                } else if (moduleId === 'outflows') {
-                    document.getElementById('outflowsModule').classList.remove('hidden');
-                    updateOutflowsModule();
-                } else if (moduleId === 'overdue') {
-                    document.getElementById('overdueModule').classList.remove('hidden');
-                    updateOverdueModule();
-                } else if (moduleId === 'report') {
-                    document.getElementById('reportModule').classList.remove('hidden');
-                    updateReportModule();
-                } else {
-                    // Show placeholder for other modules
-                    document.getElementById('otherModules').classList.remove('hidden');
-                    document.getElementById('moduleIcon').textContent = module.icon;
-                    document.getElementById('moduleTitle').textContent = module.name;
-                    document.getElementById('moduleDesc').textContent = module.desc;
-                }
-                
-                homePage.classList.add('hidden');
-                modulePage.classList.remove('hidden');
-                
-                // Update navigation state
-                updateNavigationState();
-                updateWizardState();
-            }
         }
 
         // Update navigation state
@@ -1953,70 +2458,64 @@
             document.body.removeChild(link);
         }
 
-        // Event listeners
+        // Event listeners - completely simplified approach
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM Content Loaded');
+            
             // Load saved data on startup
             loadSavedData();
             
-            // Navigation buttons
-            document.getElementById('navHomeBtn').addEventListener('click', goToHome);
-            document.getElementById('wizardHomeBtn').addEventListener('click', goToHome);
-            document.getElementById('prevStepBtn').addEventListener('click', goToPrevStep);
-            document.getElementById('nextStepBtn').addEventListener('click', goToNextStep);
-            document.getElementById('quickSaveBtn').addEventListener('click', quickSave);
-            document.getElementById('quickExportBtn').addEventListener('click', quickExport);
+            // Add global test functions
+            window.testReport = function() {
+                console.log('🧪 Testing report module directly');
+                window.navigateToModule('report');
+            };
             
-            // Module navigation buttons
-            document.querySelectorAll('.nav-module-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const moduleId = this.dataset.module;
-                    showModule(moduleId);
-                });
-            });
+            window.testInitialBalance = function() {
+                console.log('🧪 Testing initial balance module directly');
+                window.navigateToModule('initialBalance');
+            };
             
-            // Wizard step buttons
-            document.querySelectorAll('.wizard-step').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const moduleId = this.dataset.wizardStep;
-                    showModule(moduleId);
-                });
-            });
-            
-            // Home page module cards
+            // Clean setup - remove all existing listeners first
             document.querySelectorAll('.module-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const moduleId = this.dataset.module;
-                    showModule(moduleId);
-                });
+                const moduleId = card.dataset.module;
+                console.log('🔍 Setting up card:', moduleId);
+                
+                // Remove all existing listeners
+                const newCard = card.cloneNode(true);
+                card.parentNode.replaceChild(newCard, card);
+                
+                // Set only onclick attribute
+                newCard.setAttribute('onclick', `window.navigateToModule('${moduleId}')`);
             });
-
-            // Revenue select change handler
-            const revenueSelect = document.getElementById('revenueSelect');
-            if (revenueSelect) {
-                revenueSelect.addEventListener('change', function() {
-                    const revenueId = parseInt(this.value);
-                    const revenue = appData.revenues.find(r => r.id === revenueId);
-                    const receivedAmount = document.getElementById('receivedAmount');
-                    
-                    if (revenue && receivedAmount) {
-                        receivedAmount.value = revenue.amount.toFixed(2);
-                    } else if (receivedAmount) {
-                        receivedAmount.value = '';
-                    }
-                });
-            }
-        });
-
-        // Multiple back buttons
-        document.querySelectorAll('#backBtn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Check if we're in a module and go to previous step
-                if (currentStep !== 'home') {
-                    goToPrevStep();
-                } else {
-                    goToHome();
-                }
+            
+            // Setup nav buttons
+            document.querySelectorAll('.nav-module-btn').forEach(btn => {
+                const moduleId = btn.dataset.module;
+                
+                // Remove all existing listeners
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Set only onclick attribute
+                newBtn.setAttribute('onclick', `window.navigateToModule('${moduleId}')`);
             });
+            
+            // Setup back buttons
+            document.querySelectorAll('#backBtn').forEach(btn => {
+                // Remove all existing listeners
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Set only onclick attribute
+                newBtn.setAttribute('onclick', 'window.goToHomePage()');
+            });
+            
+            // Setup home buttons
+            document.getElementById('navHomeBtn').setAttribute('onclick', 'window.goToHomePage()');
+            document.getElementById('wizardHomeBtn').setAttribute('onclick', 'window.goToHomePage()');
+            
+            console.log('✅ All event listeners attached with clean approach');
         });
 
         // Initialize
