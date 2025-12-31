@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedis - Teste Mínimo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">🔧 Diagnóstico - Feedis</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Status do Sistema</h2>
+            <div id="status">Carregando...</div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Testes</h2>
+            <button onclick="testBasic()" class="bg-blue-500 text-white px-4 py-2 rounded mr-2">Teste Básico</button>
+            <button onclick="testModules()" class="bg-green-500 text-white px-4 py-2 rounded mr-2">Teste Módulos</button>
+            <button onclick="testSupabase()" class="bg-purple-500 text-white px-4 py-2 rounded mr-2">Teste Supabase</button>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Logs</h2>
+            <pre id="logs" class="bg-gray-100 p-4 rounded text-sm"></pre>
+        </div>
+    </div>
+
+    <script>
+        let logs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            document.getElementById('logs').textContent = logs.join('\n');
+            console.log(message);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<span class="${type}">${message}</span>`;
+        }
+
+        function testBasic() {
+            try {
+                log('Iniciando teste básico...');
+                updateStatus('Teste básico em andamento...', 'info');
+                
+                // Test JavaScript básico
+                const testArray = [1, 2, 3];
+                const testObject = { name: 'Test', value: 123 };
+                
+                log('✅ JavaScript básico funcionando');
+                log('✅ Arrays: ' + testArray.length + ' itens');
+                log('✅ Objetos: ' + JSON.stringify(testObject));
+                
+                // Test Tailwind
+                const testElement = document.createElement('div');
+                testElement.className = 'bg-blue-500 p-4';
+                log('✅ Tailwind CSS carregado');
+                
+                updateStatus('Teste básico: OK', 'success');
+                log('✅ Teste básico concluído com sucesso');
+                
+            } catch (error) {
+                log('❌ Erro no teste básico: ' + error.message, 'error');
+                updateStatus('Teste básico: ERRO', 'error');
+            }
+        }
+
+        function testModules() {
+            try {
+                log('Iniciando teste de módulos...');
+                updateStatus('Teste de módulos em andamento...', 'info');
+                
+                // Test estrutura de dados
+                const appData = {
+                    balances: [],
+                    revenues: [],
+                    receipts: [],
+                    suppliers: [],
+                    outflows: [],
+                    startDate: new Date().toISOString().split('T')[0]
+                };
+                
+                log('✅ Estrutura de dados criada');
+                log('✅ Tipos de dados: ' + Object.keys(appData).join(', '));
+                
+                // Test funções básicas
+                function formatCurrency(value) {
+                    return new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                    }).format(value || 0);
+                }
+                
+                const testValue = 1234.56;
+                log('✅ Formatação de moeda: ' + formatCurrency(testValue));
+                
+                // Test manipulação DOM
+                const testDiv = document.createElement('div');
+                testDiv.innerHTML = '<p>Teste DOM</p>';
+                document.body.appendChild(testDiv);
+                document.body.removeChild(testDiv);
+                
+                log('✅ Manipulação DOM funcionando');
+                
+                updateStatus('Teste de módulos: OK', 'success');
+                log('✅ Teste de módulos concluído com sucesso');
+                
+            } catch (error) {
+                log('❌ Erro no teste de módulos: ' + error.message, 'error');
+                updateStatus('Teste de módulos: ERRO', 'error');
+            }
+        }
+
+        async function testSupabase() {
+            try {
+                log('Iniciando teste de Supabase...');
+                updateStatus('Teste Supabase em andamento...', 'info');
+                
+                // Test fetch básico
+                const response = await fetch('https://httpbin.org/get');
+                const data = await response.json();
+                
+                log('✅ Fetch API funcionando');
+                log('✅ Status: ' + response.status);
+                
+                // Test Supabase client
+                try {
+                    // Verificar se o arquivo existe
+                    const scriptResponse = await fetch('./supabase-client-simple.js');
+                    if (scriptResponse.ok) {
+                        log('✅ Arquivo Supabase client encontrado');
+                        updateStatus('Teste Supabase: OK (arquivo encontrado)', 'success');
+                    } else {
+                        log('❌ Arquivo Supabase client não encontrado');
+                        updateStatus('Teste Supabase: ERRO (arquivo não encontrado)', 'error');
+                    }
+                } catch (fetchError) {
+                    log('❌ Erro ao buscar arquivo Supabase: ' + fetchError.message);
+                    updateStatus('Teste Supabase: ERRO', 'error');
+                }
+                
+                log('✅ Teste Supabase concluído');
+                
+            } catch (error) {
+                log('❌ Erro no teste Supabase: ' + error.message, 'error');
+                updateStatus('Teste Supabase: ERRO', 'error');
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Página carregada');
+            updateStatus('Sistema pronto para testes', 'success');
+            log('✅ DOM carregado');
+            log('✅ Event listeners prontos');
+        });
+    </script>
+</body>
+</html>

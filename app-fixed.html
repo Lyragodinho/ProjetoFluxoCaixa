@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedis - Gerenciador de Fluxo de Caixa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="./supabase-client-simple.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'sap-blue': '#1A2E44',
+                        'sap-light-blue': '#294867',
+                        'sap-gray': '#F0F2F5',
+                        'sap-dark-gray': '#6A737D',
+                        'sap-header': '#1A2E44',
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-sap-gray">
+    <div id="app">
+        <!-- Header -->
+        <header class="bg-sap-blue text-white p-4 shadow-lg">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold">Feedis - Gerenciador de Fluxo de Caixa</h1>
+                    <div class="text-sm">
+                        Versão 1.0.0 | Desenvolvimento
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-4 md:p-8">
+            <!-- Home Page -->
+            <div id="homePage" class="page">
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <div class="text-center mb-8">
+                        <div class="bg-sap-blue text-white rounded-lg p-8 max-w-4xl mx-auto shadow-2xl">
+                            <h2 class="text-4xl font-bold mb-2">Bem-vindo ao Feedis</h2>
+                            <p class="text-lg text-gray-200">Seu assistente inteligente para gestão de fluxo de caixa.</p>
+                            <p class="mt-4 text-sm text-gray-300">Selecione um módulo abaixo para começar.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Saldos Iniciais -->
+                        <div class="module-card bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200" onclick="showModule('initialBalance')">
+                            <div class="flex items-center text-sap-blue mb-3">
+                                <span class="text-2xl mr-3">🏦</span>
+                                <h3 class="text-lg font-bold">Saldos Iniciais</h3>
+                            </div>
+                            <p class="text-gray-600 text-sm">Defina os saldos de partida.</p>
+                        </div>
+
+                        <!-- Entradas -->
+                        <div class="module-card bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200" onclick="showModule('inflows')">
+                            <div class="flex items-center text-sap-blue mb-3">
+                                <span class="text-2xl mr-3">💰</span>
+                                <h3 class="text-lg font-bold">Entradas</h3>
+                            </div>
+                            <p class="text-gray-600 text-sm">Cadastre as receitas previstas.</p>
+                        </div>
+
+                        <!-- Recebimentos -->
+                        <div class="module-card bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200" onclick="showModule('receipts')">
+                            <div class="flex items-center text-sap-blue mb-3">
+                                <span class="text-2xl mr-3">✅</span>
+                                <h3 class="text-lg font-bold">Recebimentos</h3>
+                            </div>
+                            <p class="text-gray-600 text-sm">Confirme as entradas de caixa.</p>
+                        </div>
+
+                        <!-- Fornecedores -->
+                        <div class="module-card bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200" onclick="showModule('suppliers')">
+                            <div class="flex items-center text-sap-blue mb-3">
+                                <span class="text-2xl mr-3">🚚</span>
+                                <h3 class="text-lg font-bold">Fornecedores</h3>
+                            </div>
+                            <p class="text-gray-600 text-sm">Gerencie contas a pagar.</p>
+                        </div>
+
+                        <!-- Saídas -->
+                        <div class="module-card bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200" onclick="showModule('outflows')">
+                            <div class="flex items-center text-sap-blue mb-3">
+                                <span class="text-2xl mr-3">💸</span>
+                                <h3 class="text-lg font-bold">Saídas</h3>
+                            </div>
+                            <p class="text-gray-600 text-sm">Registre todos os pagamentos.</p>
+                        </div>
+
+                        <!-- Relatório -->
+                        <div class="module-card bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200" onclick="showModule('report')">
+                            <div class="flex items-center text-sap-blue mb-3">
+                                <span class="text-2xl mr-3">📊</span>
+                                <h3 class="text-lg font-bold">Relatório</h3>
+                            </div>
+                            <p class="text-gray-600 text-sm">Visualize o fluxo de caixa completo.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module Pages -->
+            <div id="modulePage" class="page hidden">
+                <!-- Back Button -->
+                <div class="mb-4">
+                    <button onclick="showHome()" class="text-sap-blue hover:text-sap-light-blue transition-colors flex items-center">
+                        ← Voltar ao Início
+                    </button>
+                </div>
+
+                <!-- Initial Balance Module -->
+                <div id="initialBalanceModule" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">🏦 Saldos Iniciais</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Adicionar Saldo</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Banco</label>
+                                        <select id="bankSelect" class="w-full p-2 border rounded-md bg-white">
+                                            <option value="">Selecione um banco</option>
+                                            <option value="001">001 - Banco do Brasil</option>
+                                            <option value="033">033 - Santander</option>
+                                            <option value="237">237 - Bradesco</option>
+                                            <option value="341">341 - Itaú</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Valor do Saldo (R$)</label>
+                                        <input id="balanceAmount" type="number" placeholder="50000.00" class="w-full p-2 border rounded-md bg-white"/>
+                                    </div>
+                                    <button onclick="addBalance()" class="bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                        + Adicionar Saldo
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Saldos Adicionados</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                                    <div id="balancesList">
+                                        <p class="text-sm text-gray-500">Nenhum saldo adicionado.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-4 bg-sap-blue text-white rounded-lg flex justify-between items-center font-bold text-lg">
+                                    <span>Saldo Inicial Total:</span>
+                                    <span id="totalBalance">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simple placeholder for other modules -->
+                <div id="otherModules" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <h2 id="moduleTitle" class="text-2xl font-bold text-gray-800 mb-4">Módulo</h2>
+                        <p id="moduleDesc" class="text-gray-600 mb-6">Descrição do módulo</p>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                            <p class="text-blue-800">Este módulo está em desenvolvimento. Em breve estará disponível com todas as funcionalidades.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Data storage
+        let appData = {
+            balances: [],
+            revenues: [],
+            receipts: [],
+            suppliers: [],
+            outflows: [],
+            startDate: new Date().toISOString().split('T')[0]
+        };
+
+        // Module data
+        const modules = {
+            initialBalance: { name: 'Saldos Iniciais', desc: 'Defina os saldos de partida.', icon: '🏦' },
+            inflows: { name: 'Entradas', desc: 'Cadastre as receitas previstas.', icon: '💰' },
+            receipts: { name: 'Recebimentos', desc: 'Confirme as entradas de caixa.', icon: '✅' },
+            suppliers: { name: 'Fornecedores', desc: 'Gerencie contas a pagar.', icon: '🚚' },
+            outflows: { name: 'Saídas', desc: 'Registre todos os pagamentos.', icon: '💸' },
+            report: { name: 'Relatório', desc: 'Visualize o relatório completo.', icon: '📊' }
+        };
+
+        // Page elements
+        const homePage = document.getElementById('homePage');
+        const modulePage = document.getElementById('modulePage');
+
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value || 0);
+        }
+
+        // Show module page
+        function showModule(moduleId) {
+            const module = modules[moduleId];
+            if (module) {
+                // Hide all module contents
+                document.querySelectorAll('.module-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                // Show specific module
+                if (moduleId === 'initialBalance') {
+                    document.getElementById('initialBalanceModule').classList.remove('hidden');
+                    updateBalancesList();
+                } else {
+                    // Show placeholder for other modules
+                    document.getElementById('otherModules').classList.remove('hidden');
+                    document.getElementById('moduleTitle').textContent = module.name;
+                    document.getElementById('moduleDesc').textContent = module.desc;
+                }
+                
+                homePage.classList.add('hidden');
+                modulePage.classList.remove('hidden');
+            }
+        }
+
+        // Show home page
+        function showHome() {
+            modulePage.classList.add('hidden');
+            homePage.classList.remove('hidden');
+        }
+
+        // Add balance
+        function addBalance() {
+            const bankSelect = document.getElementById('bankSelect');
+            const balanceAmount = document.getElementById('balanceAmount');
+
+            if (!bankSelect.value || !balanceAmount.value) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            const amount = parseFloat(balanceAmount.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Por favor, insira um valor válido.');
+                return;
+            }
+
+            appData.balances.push({
+                id: Date.now(),
+                bank: bankSelect.value,
+                amount: amount,
+                date: new Date().toISOString().split('T')[0]
+            });
+
+            // Clear form
+            bankSelect.value = '';
+            balanceAmount.value = '';
+
+            updateBalancesList();
+            autoSave();
+        }
+
+        // Update balances list
+        function updateBalancesList() {
+            const balancesList = document.getElementById('balancesList');
+            const totalBalance = document.getElementById('totalBalance');
+
+            if (appData.balances.length === 0) {
+                balancesList.innerHTML = '<p class="text-sm text-gray-500">Nenhum saldo adicionado.</p>';
+                totalBalance.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.balances.forEach((balance, index) => {
+                const bankName = getBankName(balance.bank);
+                html += `
+                    <div class="flex justify-between items-center p-2 rounded-md bg-white shadow-sm mb-2">
+                        <div class="flex items-center">
+                            <span class="font-medium">${bankName}</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-gray-800 mr-4">${formatCurrency(balance.amount)}</span>
+                            <button onclick="removeBalance(${index})" class="text-red-500 hover:text-red-700">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+                total += balance.amount;
+            });
+
+            balancesList.innerHTML = html;
+            totalBalance.textContent = formatCurrency(total);
+        }
+
+        // Get bank name
+        function getBankName(bankCode) {
+            const banks = {
+                '001': 'Banco do Brasil',
+                '033': 'Santander',
+                '237': 'Bradesco',
+                '341': 'Itaú'
+            };
+            return banks[bankCode] || bankCode;
+        }
+
+        // Remove balance
+        function removeBalance(index) {
+            appData.balances.splice(index, 1);
+            updateBalancesList();
+            autoSave();
+        }
+
+        // Auto-save function
+        async function autoSave() {
+            try {
+                localStorage.setItem('feedis_data', JSON.stringify(appData));
+                console.log('🔄 Auto-saved data');
+            } catch (error) {
+                console.error('Auto-save failed:', error.message);
+            }
+        }
+
+        // Load saved data
+        function loadSavedData() {
+            try {
+                const savedData = localStorage.getItem('feedis_data');
+                if (savedData) {
+                    appData = JSON.parse(savedData);
+                    console.log('✅ Dados carregados do localStorage');
+                } else {
+                    console.log('📋 Nenhum dado salvo encontrado. Iniciando com dados vazios.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar dados do localStorage:', error);
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedData();
+            console.log('Feedis - Gerenciador de Fluxo de Caixa carregado com sucesso!');
+        });
+    </script>
+</body>
+</html>

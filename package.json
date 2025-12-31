@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "start": "serve -s .",
+    "dev": "serve -s . -p 3000",
+    "build": "tsc",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^0.1.0",
+    "@google/genai": "^0.4.0",
     "pako": "^2.1.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
@@ -17,7 +19,9 @@
     "@types/pako": "^2.0.3",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^5.1.2",
     "serve": "^14.2.3",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vite": "^7.3.0"
   }
 }

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Salvamento - Feedis</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Salvamento/Carregamento - Feedis</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Status Atual</h3>
+        <div id="status">Verificando...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔧 Ações de Teste</h3>
+        <button onclick="testLocalStorage()">Testar LocalStorage</button>
+        <button onclick="testSupabaseConnection()">Testar Conexão Supabase</button>
+        <button onclick="testSaveData()">Testar Salvamento</button>
+        <button onclick="testLoadData()">Testar Carregamento</button>
+        <button onclick="clearAllData()">Limpar Todos os Dados</button>
+        <button onclick="generateTestData()">Gerar Dados de Teste</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Dados Atuais</h3>
+        <pre id="currentData">Carregando...</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>📝 Logs</h3>
+        <pre id="logs">Aguardando ações...</pre>
+    </div>
+
+    <script src="./supabase-client-simple.js"></script>
+    <script>
+        let logs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            document.getElementById('logs').textContent = logs.join('\n');
+            console.log(message);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `test-section ${type}`;
+            statusDiv.innerHTML = `<h3>📋 Status</h3><p>${message}</p>`;
+        }
+
+        function updateDataDisplay() {
+            const data = {
+                localStorage: localStorage.getItem('feedis_data'),
+                balances: JSON.parse(localStorage.getItem('feedis_data') || '{}').balances || [],
+                revenues: JSON.parse(localStorage.getItem('feedis_data') || '{}').revenues || [],
+                receipts: JSON.parse(localStorage.getItem('feedis_data') || '{}').receipts || [],
+                suppliers: JSON.parse(localStorage.getItem('feedis_data') || '{}').suppliers || [],
+                outflows: JSON.parse(localStorage.getItem('feedis_data') || '{}').outflows || []
+            };
+            
+            document.getElementById('currentData').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function testLocalStorage() {
+            try {
+                log('Testando LocalStorage...');
+                
+                const testData = {
+                    test: true,
+                    timestamp: new Date().toISOString(),
+                    message: 'Dados de teste'
+                };
+                
+                localStorage.setItem('feedis_test', JSON.stringify(testData));
+                const retrieved = JSON.parse(localStorage.getItem('feedis_test'));
+                
+                if (retrieved.test === true) {
+                    log('✅ LocalStorage funcionando corretamente', 'success');
+                    updateStatus('LocalStorage: OK', 'success');
+                } else {
+                    log('❌ LocalStorage não está funcionando', 'error');
+                    updateStatus('LocalStorage: ERRO', 'error');
+                }
+                
+                localStorage.removeItem('feedis_test');
+            } catch (error) {
+                log(`❌ Erro no LocalStorage: ${error.message}`, 'error');
+                updateStatus(`LocalStorage: ERRO - ${error.message}`, 'error');
+            }
+            
+            updateDataDisplay();
+        }
+
+        async function testSupabaseConnection() {
+            try {
+                log('Testando conexão com Supabase...');
+                
+                const initialized = await window.supabaseClient.init();
+                
+                if (initialized) {
+                    log('✅ Conexão com Supabase estabelecida', 'success');
+                    updateStatus('Supabase: Conectado', 'success');
+                } else {
+                    log('❌ Falha na conexão com Supabase', 'error');
+                    updateStatus('Supabase: ERRO', 'error');
+                }
+            } catch (error) {
+                log(`❌ Erro na conexão Supabase: ${error.message}`, 'error');
+                updateStatus(`Supabase: ERRO - ${error.message}`, 'error');
+            }
+        }
+
+        async function testSaveData() {
+            try {
+                log('Testando salvamento de dados...');
+                
+                const testData = {
+                    startDate: new Date().toISOString().split('T')[0],
+                    balances: [{ id: 1, bank: 'Test Bank', amount: 1000 }],
+                    revenues: [{ id: 1, clientName: 'Test Client', amount: 500 }],
+                    receipts: [{ id: 1, revenueId: 1, amount: 500 }],
+                    suppliers: [{ id: 1, name: 'Test Supplier' }],
+                    outflows: [{ id: 1, supplierName: 'Test Supplier', amount: 200 }]
+                };
+                
+                // Test localStorage
+                localStorage.setItem('feedis_data', JSON.stringify(testData));
+                log('✅ Dados salvos no LocalStorage', 'success');
+                
+                // Test Supabase
+                try {
+                    await window.supabaseClient.saveAllData(testData);
+                    log('✅ Dados salvos no Supabase', 'success');
+                    updateStatus('Salvamento: OK (LocalStorage + Supabase)', 'success');
+                } catch (supabaseError) {
+                    log(`⚠️ Erro ao salvar no Supabase: ${supabaseError.message}`, 'error');
+                    updateStatus('Salvamento: OK (apenas LocalStorage)', 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro no salvamento: ${error.message}`, 'error');
+                updateStatus(`Salvamento: ERRO - ${error.message}`, 'error');
+            }
+            
+            updateDataDisplay();
+        }
+
+        async function testLoadData() {
+            try {
+                log('Testando carregamento de dados...');
+                
+                // Test localStorage
+                const localData = localStorage.getItem('feedis_data');
+                if (localData) {
+                    const parsed = JSON.parse(localData);
+                    log(`✅ Dados carregados do LocalStorage: ${Object.keys(parsed).length} tipos`, 'success');
+                } else {
+                    log('⚠️ Nenhum dado encontrado no LocalStorage', 'info');
+                }
+                
+                // Test Supabase
+                try {
+                    const supabaseData = await window.supabaseClient.loadAllData();
+                    const hasData = Object.values(supabaseData).some(arr => arr.length > 0);
+                    
+                    if (hasData) {
+                        log(`✅ Dados carregados do Supabase: ${Object.keys(supabaseData).length} tipos`, 'success');
+                        updateStatus('Carregamento: OK (LocalStorage + Supabase)', 'success');
+                    } else {
+                        log('⚠️ Nenhum dado encontrado no Supabase', 'info');
+                        updateStatus('Carregamento: OK (apenas LocalStorage)', 'info');
+                    }
+                } catch (supabaseError) {
+                    log(`⚠️ Erro ao carregar do Supabase: ${supabaseError.message}`, 'error');
+                    updateStatus('Carregamento: OK (apenas LocalStorage)', 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro no carregamento: ${error.message}`, 'error');
+                updateStatus(`Carregamento: ERRO - ${error.message}`, 'error');
+            }
+            
+            updateDataDisplay();
+        }
+
+        function clearAllData() {
+            if (confirm('Tem certeza que deseja limpar todos os dados?')) {
+                localStorage.removeItem('feedis_data');
+                log('🗑️ Dados do LocalStorage limpos', 'info');
+                updateStatus('Dados limpos', 'info');
+                updateDataDisplay();
+            }
+        }
+
+        async function generateTestData() {
+            try {
+                log('Gerando dados de teste...');
+                
+                const testData = {
+                    startDate: new Date().toISOString().split('T')[0],
+                    balances: [
+                        { id: Date.now(), bank: '001 - Banco do Brasil', amount: 10000 },
+                        { id: Date.now() + 1, bank: '341 - Itaú', amount: 5000 }
+                    ],
+                    revenues: [
+                        { id: Date.now() + 2, clientName: 'Cliente A', documentType: 'NF', documentNumber: '123', amount: 3000 },
+                        { id: Date.now() + 3, clientName: 'Cliente B', documentType: 'NF', documentNumber: '456', amount: 2000 }
+                    ],
+                    receipts: [
+                        { id: Date.now() + 4, revenueId: Date.now() + 2, receiptDate: new Date().toISOString().split('T')[0], amount: 3000 }
+                    ],
+                    suppliers: [
+                        { id: Date.now() + 5, name: 'Fornecedor X', supplierType: 'Matéria Prima' },
+                        { id: Date.now() + 6, name: 'Fornecedor Y', supplierType: 'Serviços' }
+                    ],
+                    outflows: [
+                        { id: Date.now() + 7, supplierName: 'Fornecedor X', description: 'Compra de materiais', amount: 1500 },
+                        { id: Date.now() + 8, supplierName: 'Fornecedor Y', description: 'Serviço prestado', amount: 800 }
+                    ]
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('feedis_data', JSON.stringify(testData));
+                log('✅ Dados de teste salvos no LocalStorage', 'success');
+                
+                // Save to Supabase
+                try {
+                    await window.supabaseClient.saveAllData(testData);
+                    log('✅ Dados de teste salvos no Supabase', 'success');
+                    updateStatus('Dados de teste gerados e salvos', 'success');
+                } catch (supabaseError) {
+                    log(`⚠️ Erro ao salvar no Supabase: ${supabaseError.message}`, 'error');
+                    updateStatus('Dados de teste gerados (apenas LocalStorage)', 'info');
+                }
+                
+                updateDataDisplay();
+                
+            } catch (error) {
+                log(`❌ Erro ao gerar dados de teste: ${error.message}`, 'error');
+                updateStatus(`Erro: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Página de teste carregada');
+            updateDataDisplay();
+            testLocalStorage();
+        });
+    </script>
+</body>
+</html>

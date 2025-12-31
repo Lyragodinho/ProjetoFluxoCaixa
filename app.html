@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedis - Gerenciador de Fluxo de Caixa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="./supabase-client-simple.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'sap-blue': '#1A2E44',
+                        'sap-light-blue': '#294867',
+                        'sap-gray': '#F0F2F5',
+                        'sap-dark-gray': '#6A737D',
+                        'sap-header': '#1A2E44',
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-sap-gray">
+    <div id="app">
+        <!-- Header -->
+        <header class="bg-sap-blue text-white p-4 shadow-lg sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-2xl font-bold">Feedis - Gerenciador de Fluxo de Caixa</h1>
+                    <div class="text-sm">
+                        Versão 1.0.0 | Desenvolvimento
+                    </div>
+                </div>
+                
+                <!-- Navigation Bar -->
+                <nav class="bg-sap-light-blue rounded-lg p-2">
+                    <div class="flex items-center justify-between">
+                        <!-- Home Button -->
+                        <button id="navHomeBtn" class="nav-btn px-3 py-2 rounded-md text-white hover:bg-sap-blue transition-colors flex items-center">
+                            <span class="mr-2">🏠</span>
+                            <span class="hidden sm:inline">Início</span>
+                        </button>
+                        
+                        <!-- Module Navigation -->
+                        <div class="flex items-center space-x-1 overflow-x-auto">
+                            <button data-module="initialBalance" class="nav-module-btn px-3 py-2 rounded-md text-white hover:bg-sap-blue transition-colors flex items-center whitespace-nowrap">
+                                <span class="mr-2">🏦</span>
+                                <span class="hidden sm:inline">Saldos</span>
+                            </button>
+                            <button data-module="inflows" class="nav-module-btn px-3 py-2 rounded-md text-white hover:bg-sap-blue transition-colors flex items-center whitespace-nowrap">
+                                <span class="mr-2">💰</span>
+                                <span class="hidden sm:inline">Entradas</span>
+                            </button>
+                            <button data-module="receipts" class="nav-module-btn px-3 py-2 rounded-md text-white hover:bg-sap-blue transition-colors flex items-center whitespace-nowrap">
+                                <span class="mr-2">✅</span>
+                                <span class="hidden sm:inline">Recebimentos</span>
+                            </button>
+                            <button data-module="suppliers" class="nav-module-btn px-3 py-2 rounded-md text-white hover:bg-sap-blue transition-colors flex items-center whitespace-nowrap">
+                                <span class="mr-2">🚚</span>
+                                <span class="hidden sm:inline">Fornecedores</span>
+                            </button>
+                            <button data-module="outflows" class="nav-module-btn px-3 py-2 rounded-md text-white hover:bg-sap-blue transition-colors flex items-center whitespace-nowrap">
+                                <span class="mr-2">💸</span>
+                                <span class="hidden sm:inline">Saídas</span>
+                            </button>
+                            <button data-module="overdue" class="nav-module-btn px-3 py-2 rounded-md text-white hover:bg-sap-blue transition-colors flex items-center whitespace-nowrap">
+                                <span class="mr-2">⚠️</span>
+                                <span class="hidden sm:inline">Inadimplência</span>
+                            </button>
+                            <button data-module="report" class="nav-module-btn px-3 py-2 rounded-md text-white hover:bg-sap-blue transition-colors flex items-center whitespace-nowrap">
+                                <span class="mr-2">📊</span>
+                                <span class="hidden sm:inline">Relatório</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <div class="flex items-center space-x-2">
+                            <div id="connectionStatus" class="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-600">
+                                🔄 Conectando...
+                            </div>
+                            <button id="quickSaveBtn" class="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm">
+                                💾 Salvar
+                            </button>
+                            <button id="quickExportBtn" class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm">
+                                📤 Exportar
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Step Wizard (visible when not on home page) -->
+        <div id="stepWizard" class="hidden bg-white border-b shadow-sm sticky top-20 z-40">
+            <div class="max-w-7xl mx-auto p-4">
+                <div class="flex items-center">
+                    <button id="wizardHomeBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors" title="Voltar ao Início">
+                        🏠
+                    </button>
+                    <div class="flex items-center justify-between flex-grow overflow-x-auto">
+                        <div class="flex items-center space-x-2 min-w-max">
+                            <button data-wizard-step="initialBalance" class="wizard-step flex items-center text-center px-3 py-2 rounded-md transition-colors min-w-[80px]">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">1</div>
+                                <span class="text-xs sm:text-sm">Saldos</span>
+                            </button>
+                            <div class="w-8 h-0.5 bg-gray-300"></div>
+                            <button data-wizard-step="inflows" class="wizard-step flex items-center text-center px-3 py-2 rounded-md transition-colors min-w-[80px]">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">2</div>
+                                <span class="text-xs sm:text-sm">Entradas</span>
+                            </button>
+                            <div class="w-8 h-0.5 bg-gray-300"></div>
+                            <button data-wizard-step="receipts" class="wizard-step flex items-center text-center px-3 py-2 rounded-md transition-colors min-w-[80px]">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">3</div>
+                                <span class="text-xs sm:text-sm">Recebimentos</span>
+                            </button>
+                            <div class="w-8 h-0.5 bg-gray-300"></div>
+                            <button data-wizard-step="suppliers" class="wizard-step flex items-center text-center px-3 py-2 rounded-md transition-colors min-w-[80px]">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">4</div>
+                                <span class="text-xs sm:text-sm">Fornecedores</span>
+                            </button>
+                            <div class="w-8 h-0.5 bg-gray-300"></div>
+                            <button data-wizard-step="outflows" class="wizard-step flex items-center text-center px-3 py-2 rounded-md transition-colors min-w-[80px]">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">5</div>
+                                <span class="text-xs sm:text-sm">Saídas</span>
+                            </button>
+                            <div class="w-8 h-0.5 bg-gray-300"></div>
+                            <button data-wizard-step="overdue" class="wizard-step flex items-center text-center px-3 py-2 rounded-md transition-colors min-w-[80px]">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">6</div>
+                                <span class="text-xs sm:text-sm">Inadimplência</span>
+                            </button>
+                            <div class="w-8 h-0.5 bg-gray-300"></div>
+                            <button data-wizard-step="report" class="wizard-step flex items-center text-center px-3 py-2 rounded-md transition-colors min-w-[80px]">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">7</div>
+                                <span class="text-xs sm:text-sm">Relatório</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Navigation Arrows -->
+                    <div class="flex items-center ml-4 space-x-2">
+                        <button id="prevStepBtn" class="px-2 py-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors disabled:opacity-50" disabled>
+                            ←
+                        </button>
+                        <button id="nextStepBtn" class="px-2 py-1 bg-sap-blue text-white rounded hover:bg-sap-light-blue transition-colors">
+                            →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="p-4 md:p-8">
+            <!-- Home Page -->
+            <div id="homePage" class="page">
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <div class="text-center mb-8">
+                        <div class="bg-sap-blue text-white rounded-lg p-8 max-w-4xl mx-auto shadow-2xl">
+                            <h2 class="text-4xl font-bold mb-2">Bem-vindo ao Feedis</h2>
+                            <p class="text-lg text-gray-200">Seu assistente inteligente para gestão de fluxo de caixa.</p>
+                            <p class="mt-4 text-sm text-gray-300">Utilize os atalhos abaixo para navegar diretamente para a seção desejada.</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="module-card" data-module="initialBalance">
+                            <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col border border-gray-200 cursor-pointer">
+                                <div class="flex items-center text-sap-blue mb-3">
+                                    <span class="text-2xl mr-3">🏦</span>
+                                    <h3 class="text-lg font-bold">Saldos Iniciais</h3>
+                                </div>
+                                <p class="text-gray-600 text-sm flex-grow">Defina os saldos de partida.</p>
+                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                    Acessar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="module-card" data-module="inflows">
+                            <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col border border-gray-200 cursor-pointer">
+                                <div class="flex items-center text-sap-blue mb-3">
+                                    <span class="text-2xl mr-3">💰</span>
+                                    <h3 class="text-lg font-bold">Entradas</h3>
+                                </div>
+                                <p class="text-gray-600 text-sm flex-grow">Cadastre as receitas previstas.</p>
+                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                    Acessar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="module-card" data-module="receipts">
+                            <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col border border-gray-200 cursor-pointer">
+                                <div class="flex items-center text-sap-blue mb-3">
+                                    <span class="text-2xl mr-3">✅</span>
+                                    <h3 class="text-lg font-bold">Recebimentos</h3>
+                                </div>
+                                <p class="text-gray-600 text-sm flex-grow">Confirme as entradas de caixa.</p>
+                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                    Acessar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="module-card" data-module="suppliers">
+                            <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col border border-gray-200 cursor-pointer">
+                                <div class="flex items-center text-sap-blue mb-3">
+                                    <span class="text-2xl mr-3">🚚</span>
+                                    <h3 class="text-lg font-bold">Fornecedores</h3>
+                                </div>
+                                <p class="text-gray-600 text-sm flex-grow">Gerencie contas a pagar.</p>
+                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                    Acessar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="module-card" data-module="outflows">
+                            <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col border border-gray-200 cursor-pointer">
+                                <div class="flex items-center text-sap-blue mb-3">
+                                    <span class="text-2xl mr-3">💸</span>
+                                    <h3 class="text-lg font-bold">Saídas</h3>
+                                </div>
+                                <p class="text-gray-600 text-sm flex-grow">Registre todos os pagamentos.</p>
+                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                    Acessar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="module-card" data-module="overdue">
+                            <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col border border-gray-200 cursor-pointer">
+                                <div class="flex items-center text-sap-blue mb-3">
+                                    <span class="text-2xl mr-3">⚠️</span>
+                                    <h3 class="text-lg font-bold">Inadimplência</h3>
+                                </div>
+                                <p class="text-gray-600 text-sm flex-grow">Monitore recebíveis vencidos.</p>
+                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                    Acessar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="module-card" data-module="report">
+                            <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col border border-gray-200 cursor-pointer">
+                                <div class="flex items-center text-sap-blue mb-3">
+                                    <span class="text-2xl mr-3">📊</span>
+                                    <h3 class="text-lg font-bold">Fluxo de Caixa</h3>
+                                </div>
+                                <p class="text-gray-600 text-sm flex-grow">Visualize o relatório completo.</p>
+                                <button class="mt-4 w-full bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                    Acessar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module Pages -->
+            <div id="modulePage" class="page hidden">
+                <!-- Initial Balance Module -->
+                <div id="initialBalanceModule" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <div class="flex items-center mb-6">
+                            <button id="backBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors">
+                                ← Voltar
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">🏦</span>
+                                <h2 class="text-2xl font-bold text-gray-800">Saldos Iniciais</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Configuração Inicial</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Data Inicial do Fluxo de Caixa</label>
+                                        <input id="startDate" type="date" class="w-full p-2 border rounded-md bg-white"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Banco</label>
+                                        <select id="bankSelect" class="w-full p-2 border rounded-md bg-white">
+                                            <option value="">Selecione um banco</option>
+                                            <option value="001">001 - Banco do Brasil</option>
+                                            <option value="033">033 - Santander</option>
+                                            <option value="237">237 - Bradesco</option>
+                                            <option value="341">341 - Itaú</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Valor do Saldo Inicial (R$)</label>
+                                        <input id="balanceAmount" type="number" placeholder="50000.00" class="w-full p-2 border rounded-md bg-white"/>
+                                    </div>
+                                    <button onclick="addBalance()" class="bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                        + Adicionar Saldo
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Saldos Adicionados</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                                    <div id="balancesList">
+                                        <p class="text-sm text-gray-500">Nenhum saldo adicionado.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-4 bg-sap-blue text-white rounded-lg flex justify-between items-center font-bold text-lg">
+                                    <span>Saldo Inicial Total:</span>
+                                    <span id="totalBalance">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inflows Module -->
+                <div id="inflowsModule" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <div class="flex items-center mb-6">
+                            <button id="backBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors">
+                                ← Voltar
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">💰</span>
+                                <h2 class="text-2xl font-bold text-gray-800">Entradas Operacionais (Receitas)</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Adicionar Receita</h3>
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-sm font-medium text-gray-600 mb-1">Nome do Cliente</label>
+                                            <input id="clientName" type="text" placeholder="Ex: Empresa Y" class="w-full p-2 border rounded-md bg-white"/>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-600 mb-1">Tipo de Documento</label>
+                                            <select id="documentType" class="w-full p-2 border rounded-md bg-white">
+                                                <option>NF</option>
+                                                <option>Previsão</option>
+                                                <option>Carteira</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-600 mb-1">Número do Documento</label>
+                                            <input id="documentNumber" type="text" placeholder="12345" class="w-full p-2 border rounded-md bg-white"/>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-600 mb-1">Data Emissão</label>
+                                            <input id="issueDate" type="date" class="w-full p-2 border rounded-md bg-white"/>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-600 mb-1">Data Vencimento</label>
+                                            <input id="dueDate" type="date" class="w-full p-2 border rounded-md bg-white"/>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-600 mb-1">Tipo de Receita</label>
+                                            <select id="revenueType" class="w-full p-2 border rounded-md bg-white">
+                                                <option>Venda de Produto</option>
+                                                <option>Venda de Serviço</option>
+                                                <option>Venda de Sucatas</option>
+                                                <option>Outros</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-600 mb-1">Valor (R$)</label>
+                                            <input id="revenueAmount" type="number" placeholder="15000.00" class="w-full p-2 border rounded-md bg-white"/>
+                                        </div>
+                                    </div>
+                                    <button onclick="addRevenue()" class="bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                        + Adicionar Receita
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Receitas Adicionadas</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                                    <div id="revenuesList">
+                                        <p class="text-sm text-gray-500">Nenhuma receita adicionada.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-4 bg-sap-blue text-white rounded-lg flex justify-between items-center font-bold text-lg">
+                                    <span>Total de Entradas:</span>
+                                    <span id="totalRevenues">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Receipts Module -->
+                <div id="receiptsModule" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <div class="flex items-center mb-6">
+                            <button id="backBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors">
+                                ← Voltar
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">✅</span>
+                                <h2 class="text-2xl font-bold text-gray-800">Recebimentos</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h3 class="font-semibold text-sap-blue mb-2">Resumo de Recebimentos</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-sap-blue" id="totalPending">0</div>
+                                        <div class="text-sm text-gray-600">Pendentes</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-green-600" id="totalReceived">0</div>
+                                        <div class="text-sm text-gray-600">Recebidos</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-orange-600" id="totalOverdue">0</div>
+                                        <div class="text-sm text-gray-600">Vencidos</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-gray-800" id="totalValue">R$ 0,00</div>
+                                        <div class="text-sm text-gray-600">Valor Total</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Confirmar Recebimento</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Selecione a Receita</label>
+                                        <select id="revenueSelect" class="w-full p-2 border rounded-md bg-white">
+                                            <option value="">Carregue receitas no módulo Entradas...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Data do Recebimento</label>
+                                        <input id="receiptDate" type="date" class="w-full p-2 border rounded-md bg-white"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Valor Recebido (R$)</label>
+                                        <input id="receivedAmount" type="number" placeholder="0.00" class="w-full p-2 border rounded-md bg-white" readonly/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Forma de Pagamento</label>
+                                        <select id="paymentMethod" class="w-full p-2 border rounded-md bg-white">
+                                            <option value="Dinheiro">Dinheiro</option>
+                                            <option value="Transferência">Transferência Bancária</option>
+                                            <option value="Cheque">Cheque</option>
+                                            <option value="Cartão">Cartão</option>
+                                            <option value="PIX">PIX</option>
+                                            <option value="Outro">Outro</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Observações</label>
+                                        <textarea id="receiptNotes" rows="3" placeholder="Observações sobre o recebimento..." class="w-full p-2 border rounded-md bg-white"></textarea>
+                                    </div>
+                                    <button onclick="confirmReceipt()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                                        ✅ Confirmar Recebimento
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Recebimentos Confirmados</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                                    <div id="receiptsList">
+                                        <p class="text-sm text-gray-500">Nenhum recebimento confirmado.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-4 bg-green-600 text-white rounded-lg flex justify-between items-center font-bold text-lg">
+                                    <span>Total Recebido:</span>
+                                    <span id="totalReceivedAmount">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suppliers Module -->
+                <div id="suppliersModule" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <div class="flex items-center mb-6">
+                            <button id="backBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors">
+                                ← Voltar
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">🚚</span>
+                                <h2 class="text-2xl font-bold text-gray-800">Fornecedores</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Adicionar Fornecedor</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Nome do Fornecedor</label>
+                                        <input id="supplierName" type="text" placeholder="Ex: Fornecedor ABC Ltda" class="w-full p-2 border rounded-md bg-white"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Tipo de Fluxo de Caixa</label>
+                                        <select id="cashFlowType" class="w-full p-2 border rounded-md bg-white">
+                                            <option value="Fluxo de Caixa Operacional">Fluxo de Caixa Operacional</option>
+                                            <option value="Fluxo de Caixa de Investimento">Fluxo de Caixa de Investimento</option>
+                                            <option value="Fluxo de Caixa de Financiamento">Fluxo de Caixa de Financiamento</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Tipo de Fornecedor</label>
+                                        <select id="supplierType" class="w-full p-2 border rounded-md bg-white">
+                                            <option value="">Selecione...</option>
+                                            <option value="Matéria Prima">Matéria Prima</option>
+                                            <option value="Serviços">Serviços</option>
+                                            <option value="Aluguel">Aluguel</option>
+                                            <option value="Utilidades">Utilidades</option>
+                                            <option value="Marketing">Marketing</option>
+                                            <option value="Transporte">Transporte</option>
+                                            <option value="Outros">Outros</option>
+                                        </select>
+                                    </div>
+                                    <button onclick="addSupplier()" class="bg-sap-blue text-white px-4 py-2 rounded-md hover:bg-sap-light-blue transition-colors">
+                                        + Adicionar Fornecedor
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Fornecedores Cadastrados</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                                    <div id="suppliersList">
+                                        <p class="text-sm text-gray-500">Nenhum fornecedor cadastrado.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-4 bg-sap-blue text-white rounded-lg flex justify-between items-center font-bold text-lg">
+                                    <span>Total de Fornecedores:</span>
+                                    <span id="totalSuppliers">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Outflows Module -->
+                <div id="outflowsModule" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <div class="flex items-center mb-6">
+                            <button id="backBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors">
+                                ← Voltar
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">💸</span>
+                                <h2 class="text-2xl font-bold text-gray-800">Saídas</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Registrar Pagamento</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Fornecedor</label>
+                                        <select id="outflowSupplier" class="w-full p-2 border rounded-md bg-white">
+                                            <option value="">Cadastre fornecedores primeiro...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Descrição do Pagamento</label>
+                                        <input id="outflowDescription" type="text" placeholder="Ex: Pagamento de fatura 123" class="w-full p-2 border rounded-md bg-white"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Data do Pagamento</label>
+                                        <input id="outflowDate" type="date" class="w-full p-2 border rounded-md bg-white"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Valor (R$)</label>
+                                        <input id="outflowAmount" type="number" placeholder="0.00" class="w-full p-2 border rounded-md bg-white"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Forma de Pagamento</label>
+                                        <select id="outflowPaymentMethod" class="w-full p-2 border rounded-md bg-white">
+                                            <option value="Dinheiro">Dinheiro</option>
+                                            <option value="Transferência">Transferência Bancária</option>
+                                            <option value="Cheque">Cheque</option>
+                                            <option value="Cartão">Cartão</option>
+                                            <option value="PIX">PIX</option>
+                                            <option value="Boleto">Boleto</option>
+                                        </select>
+                                    </div>
+                                    <button onclick="addOutflow()" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">
+                                        + Registrar Pagamento
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Pagamentos Registrados</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                                    <div id="outflowsList">
+                                        <p class="text-sm text-gray-500">Nenhum pagamento registrado.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-4 bg-red-600 text-white rounded-lg flex justify-between items-center font-bold text-lg">
+                                    <span>Total de Saídas:</span>
+                                    <span id="totalOutflows">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overdue Module -->
+                <div id="overdueModule" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <div class="flex items-center mb-6">
+                            <button id="backBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors">
+                                ← Voltar
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">⚠️</span>
+                                <h2 class="text-2xl font-bold text-gray-800">Inadimplência</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                <h3 class="font-semibold text-orange-800 mb-2">Resumo de Inadimplência</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-orange-600" id="overdueCount">0</div>
+                                        <div class="text-sm text-gray-600">Títulos Vencidos</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-red-600" id="overdueValue">R$ 0,00</div>
+                                        <div class="text-sm text-gray-600">Valor em Atraso</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-blue-600" id="avgDelayDays">0</div>
+                                        <div class="text-sm text-gray-600">Média de Dias em Atraso</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="font-semibold mb-4 text-gray-700">Títulos Vencidos</h3>
+                            <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                                <div id="overdueList">
+                                    <p class="text-sm text-gray-500">Nenhum título vencido encontrado.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Module -->
+                <div id="reportModule" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <div class="flex items-center mb-6">
+                            <button id="backBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors">
+                                ← Voltar
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">📊</span>
+                                <h2 class="text-2xl font-bold text-gray-800">Fluxo de Caixa</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h3 class="font-semibold text-sap-blue mb-2">Resumo do Fluxo de Caixa</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-green-600" id="reportTotalInflows">R$ 0,00</div>
+                                        <div class="text-sm text-gray-600">Total de Entradas</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-red-600" id="reportTotalOutflows">R$ 0,00</div>
+                                        <div class="text-sm text-gray-600">Total de Saídas</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-sap-blue" id="reportNetCash">R$ 0,00</div>
+                                        <div class="text-sm text-gray-600">Saldo Líquido</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-purple-600" id="reportFinalBalance">R$ 0,00</div>
+                                        <div class="text-sm text-gray-600">Saldo Final</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Detalhamento de Entradas</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                                    <div id="reportInflowsList">
+                                        <p class="text-sm text-gray-500">Nenhuma entrada registrada.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-semibold mb-4 text-gray-700">Detalhamento de Saídas</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                                    <div id="reportOutflowsList">
+                                        <p class="text-sm text-gray-500">Nenhuma saída registrada.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 flex justify-center">
+                            <button onclick="generateReport()" class="bg-sap-blue text-white px-6 py-3 rounded-md hover:bg-sap-light-blue transition-colors">
+                                📊 Gerar Relatório Completo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Other Modules (Placeholder for now) -->
+                <div id="otherModules" class="module-content hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <div class="flex items-center mb-6">
+                            <button id="backBtn" class="mr-4 text-sap-blue hover:text-sap-light-blue transition-colors">
+                                ← Voltar
+                            </button>
+                            <div class="flex items-center">
+                                <span id="moduleIcon" class="text-2xl mr-3"></span>
+                                <h2 id="moduleTitle" class="text-2xl font-bold text-gray-800"></h2>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-sap-blue mb-2">Módulo em Desenvolvimento</h3>
+                            <p class="text-sap-dark-gray mb-4">Esta seção está sendo implementada. Em breve você poderá:</p>
+                            <ul class="list-disc list-inside text-sap-dark-gray space-y-1">
+                                <li id="moduleDesc"></li>
+                                <li>Importar dados via CSV</li>
+                                <li>Visualizar relatórios detalhados</li>
+                                <li>Exportar para diferentes formatos</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-sap-blue text-white p-4 mt-8">
+            <div class="max-w-7xl mx-auto text-center text-sm">
+                © 2025 Feedis - Sistema de Gestão de Fluxo de Caixa
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Data storage
+        let appData = {
+            balances: [],
+            revenues: [],
+            receipts: [],
+            suppliers: [],
+            outflows: [],
+            startDate: new Date().toISOString().split('T')[0]
+        };
+
+        // Current step tracking
+        let currentStep = 'home';
+        const stepOrder = ['initialBalance', 'inflows', 'receipts', 'suppliers', 'outflows', 'overdue', 'report'];
+
+        // Module data
+        const modules = {
+            initialBalance: { name: 'Saldos Iniciais', desc: 'Defina os saldos de partida.', icon: '🏦' },
+            inflows: { name: 'Entradas', desc: 'Cadastre as receitas previstas.', icon: '💰' },
+            receipts: { name: 'Recebimentos', desc: 'Confirme as entradas de caixa.', icon: '✅' },
+            suppliers: { name: 'Fornecedores', desc: 'Gerencie contas a pagar.', icon: '🚚' },
+            outflows: { name: 'Saídas', desc: 'Registre todos os pagamentos.', icon: '💸' },
+            overdue: { name: 'Inadimplência', desc: 'Monitore recebíveis vencidos.', icon: '⚠️' },
+            report: { name: 'Fluxo de Caixa', desc: 'Visualize o relatório completo.', icon: '📊' }
+        };
+
+        // Bank names mapping
+        const bankNames = {
+            '001': 'Banco do Brasil',
+            '033': 'Santander',
+            '237': 'Bradesco',
+            '341': 'Itaú'
+        };
+
+        // DOM elements
+        const homePage = document.getElementById('homePage');
+        const modulePage = document.getElementById('modulePage');
+        const backBtn = document.getElementById('backBtn');
+
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value);
+        }
+
+        // Calculate next business day
+        function calculateNextBusinessDay(dateStr) {
+            const date = new Date(dateStr + 'T12:00:00Z');
+            const nextDay = new Date(date);
+            nextDay.setDate(date.getDate() + 1);
+            
+            // Skip weekends (simplified)
+            while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
+                nextDay.setDate(nextDay.getDate() + 1);
+            }
+            
+            return nextDay.toISOString().split('T')[0];
+        }
+
+        // Show module page
+        function showModule(moduleId) {
+            const module = modules[moduleId];
+            if (module) {
+                currentStep = moduleId;
+                
+                // Hide all module contents
+                document.querySelectorAll('.module-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                // Show/hide step wizard
+                const stepWizard = document.getElementById('stepWizard');
+                if (moduleId === 'home') {
+                    stepWizard.classList.add('hidden');
+                } else {
+                    stepWizard.classList.remove('hidden');
+                }
+
+                // Show specific module
+                if (moduleId === 'initialBalance') {
+                    document.getElementById('initialBalanceModule').classList.remove('hidden');
+                    updateBalancesList();
+                } else if (moduleId === 'inflows') {
+                    document.getElementById('inflowsModule').classList.remove('hidden');
+                    updateRevenuesList();
+                    // Set default dates
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('issueDate').value = today;
+                    document.getElementById('dueDate').value = today;
+                } else if (moduleId === 'receipts') {
+                    document.getElementById('receiptsModule').classList.remove('hidden');
+                    updateReceiptsModule();
+                } else if (moduleId === 'suppliers') {
+                    document.getElementById('suppliersModule').classList.remove('hidden');
+                    updateSuppliersList();
+                } else if (moduleId === 'outflows') {
+                    document.getElementById('outflowsModule').classList.remove('hidden');
+                    updateOutflowsModule();
+                } else if (moduleId === 'overdue') {
+                    document.getElementById('overdueModule').classList.remove('hidden');
+                    updateOverdueModule();
+                } else if (moduleId === 'report') {
+                    document.getElementById('reportModule').classList.remove('hidden');
+                    updateReportModule();
+                } else {
+                    // Show placeholder for other modules
+                    document.getElementById('otherModules').classList.remove('hidden');
+                    document.getElementById('moduleIcon').textContent = module.icon;
+                    document.getElementById('moduleTitle').textContent = module.name;
+                    document.getElementById('moduleDesc').textContent = module.desc;
+                }
+                
+                homePage.classList.add('hidden');
+                modulePage.classList.remove('hidden');
+                
+                // Update navigation state
+                updateNavigationState();
+                updateWizardState();
+            }
+        }
+
+        // Update navigation state
+        function updateNavigationState() {
+            // Update nav buttons
+            document.querySelectorAll('.nav-module-btn').forEach(btn => {
+                const moduleId = btn.dataset.module;
+                if (moduleId === currentStep) {
+                    btn.classList.add('bg-sap-blue');
+                    btn.classList.remove('bg-transparent');
+                } else {
+                    btn.classList.remove('bg-sap-blue');
+                    btn.classList.add('bg-transparent');
+                }
+            });
+        }
+
+        // Update wizard state
+        function updateWizardState() {
+            const currentIndex = stepOrder.indexOf(currentStep);
+            
+            // Update wizard steps
+            document.querySelectorAll('.wizard-step').forEach((step, index) => {
+                const stepId = step.dataset.wizardStep;
+                const stepIndex = stepOrder.indexOf(stepId);
+                
+                // Remove all classes
+                step.classList.remove('bg-sap-blue', 'text-white', 'bg-green-500', 'text-gray-500', 'bg-gray-200');
+                
+                if (stepIndex < currentIndex) {
+                    // Completed step
+                    step.classList.add('bg-green-500', 'text-white');
+                    step.querySelector('div').innerHTML = '✓';
+                } else if (stepIndex === currentIndex) {
+                    // Current step
+                    step.classList.add('bg-sap-blue', 'text-white');
+                    step.querySelector('div').textContent = stepIndex + 1;
+                } else {
+                    // Future step
+                    step.classList.add('bg-gray-200', 'text-gray-500');
+                    step.querySelector('div').textContent = stepIndex + 1;
+                }
+            });
+            
+            // Update navigation lines
+            document.querySelectorAll('#stepWizard .w-8').forEach((line, index) => {
+                if (index < currentIndex) {
+                    line.classList.remove('bg-gray-300');
+                    line.classList.add('bg-green-500');
+                } else {
+                    line.classList.remove('bg-green-500');
+                    line.classList.add('bg-gray-300');
+                }
+            });
+            
+            // Update navigation arrows
+            const prevBtn = document.getElementById('prevStepBtn');
+            const nextBtn = document.getElementById('nextStepBtn');
+            
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === stepOrder.length - 1;
+        }
+
+        // Navigation functions
+        function goToNextStep() {
+            const currentIndex = stepOrder.indexOf(currentStep);
+            if (currentIndex < stepOrder.length - 1) {
+                showModule(stepOrder[currentIndex + 1]);
+            }
+        }
+
+        function goToPrevStep() {
+            const currentIndex = stepOrder.indexOf(currentStep);
+            if (currentIndex > 0) {
+                showModule(stepOrder[currentIndex - 1]);
+            }
+        }
+
+        function goToHome() {
+            currentStep = 'home';
+            document.getElementById('stepWizard').classList.add('hidden');
+            homePage.classList.remove('hidden');
+            modulePage.classList.add('hidden');
+            updateNavigationState();
+        }
+
+        // Quick actions
+        async function quickSave() {
+            try {
+                // Show loading state
+                const saveBtn = document.getElementById('quickSaveBtn');
+                const originalText = saveBtn.innerHTML;
+                saveBtn.innerHTML = '⏳ Salvando...';
+                saveBtn.disabled = true;
+                
+                updateConnectionStatus('loading', 'Salvando no Supabase...');
+
+                // Save to Supabase
+                const result = await window.supabaseClient.saveAllData(appData);
+                
+                // Also save to localStorage as backup
+                localStorage.setItem('feedis_data', JSON.stringify(appData));
+                
+                // Restore button state
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+                
+                updateConnectionStatus('connected', 'Salvo no Supabase');
+                alert('✅ ' + result.message);
+            } catch (error) {
+                console.error('Save error:', error);
+                
+                // Fallback to localStorage
+                localStorage.setItem('feedis_data', JSON.stringify(appData));
+                
+                // Restore button state
+                const saveBtn = document.getElementById('quickSaveBtn');
+                saveBtn.innerHTML = '💾 Salvar';
+                saveBtn.disabled = false;
+                
+                updateConnectionStatus('error', 'Erro ao salvar');
+                alert('⚠️ Erro ao salvar no Supabase. Dados salvos localmente como backup.\nErro: ' + error.message);
+            }
+        }
+
+        async function quickExport() {
+            try {
+                // Show loading state
+                const exportBtn = document.getElementById('quickExportBtn');
+                const originalText = exportBtn.innerHTML;
+                exportBtn.innerHTML = '⏳ Exportando...';
+                exportBtn.disabled = true;
+                
+                updateConnectionStatus('loading', 'Exportando do Supabase...');
+
+                // Export from Supabase
+                const result = await window.supabaseClient.exportData();
+                
+                // Restore button state
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+                
+                updateConnectionStatus('connected', 'Exportado com sucesso');
+                alert('✅ ' + result.message);
+            } catch (error) {
+                console.error('Export error:', error);
+                
+                // Fallback to local export
+                const dataStr = JSON.stringify(appData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `feedis_local_data_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+                
+                // Restore button state
+                const exportBtn = document.getElementById('quickExportBtn');
+                exportBtn.innerHTML = '📤 Exportar';
+                exportBtn.disabled = false;
+                
+                updateConnectionStatus('connected', 'Exportado localmente');
+                alert('⚠️ Erro ao exportar do Supabase. Exportação local realizada.\nErro: ' + error.message);
+            }
+        }
+
+        // Update connection status
+        function updateConnectionStatus(status, message) {
+            const statusElement = document.getElementById('connectionStatus');
+            
+            statusElement.className = 'px-2 py-1 text-xs rounded-full ';
+            
+            switch(status) {
+                case 'connected':
+                    statusElement.className += 'bg-green-100 text-green-800';
+                    statusElement.innerHTML = '🟢 ' + message;
+                    break;
+                case 'error':
+                    statusElement.className += 'bg-red-100 text-red-800';
+                    statusElement.innerHTML = '🔴 ' + message;
+                    break;
+                case 'loading':
+                    statusElement.className += 'bg-yellow-100 text-yellow-800';
+                    statusElement.innerHTML = '🟡 ' + message;
+                    break;
+                default:
+                    statusElement.className += 'bg-gray-200 text-gray-600';
+                    statusElement.innerHTML = '⚪ ' + message;
+            }
+        }
+
+        // Load saved data
+        async function loadSavedData() {
+            try {
+                updateConnectionStatus('loading', 'Conectando ao Supabase...');
+                
+                // Initialize Supabase client
+                const initialized = await window.supabaseClient.init();
+                
+                if (initialized) {
+                    // Try to load from Supabase first
+                    const supabaseData = await window.supabaseClient.loadAllData();
+                    
+                    // Check if we have meaningful data
+                    const hasData = supabaseData.balances.length > 0 || 
+                                  supabaseData.revenues.length > 0 || 
+                                  supabaseData.receipts.length > 0 ||
+                                  supabaseData.suppliers.length > 0 ||
+                                  supabaseData.outflows.length > 0;
+                    
+                    if (hasData) {
+                        appData = supabaseData;
+                        updateConnectionStatus('connected', 'Supabase conectado');
+                        console.log('✅ Dados carregados do Supabase com sucesso!');
+                        return;
+                    }
+                }
+                
+                // Fallback to localStorage
+                const savedData = localStorage.getItem('feedis_data');
+                if (savedData) {
+                    try {
+                        appData = JSON.parse(savedData);
+                        updateConnectionStatus('connected', 'Usando backup local');
+                        console.log('✅ Dados carregados do localStorage (backup)');
+                    } catch (error) {
+                        console.error('❌ Erro ao carregar dados do localStorage:', error);
+                        updateConnectionStatus('error', 'Erro no backup local');
+                    }
+                } else {
+                    updateConnectionStatus('connected', 'Nenhum dado salvo');
+                    console.log('📋 Nenhum dado salvo encontrado. Iniciando com dados vazios.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar dados do Supabase:', error);
+                updateConnectionStatus('error', 'Erro de conexão');
+                
+                // Fallback to localStorage
+                const savedData = localStorage.getItem('feedis_data');
+                if (savedData) {
+                    try {
+                        appData = JSON.parse(savedData);
+                        updateConnectionStatus('connected', 'Usando backup local');
+                        console.log('✅ Dados carregados do localStorage (fallback)');
+                    } catch (localError) {
+                        console.error('❌ Erro ao carregar dados do localStorage:', localError);
+                        updateConnectionStatus('error', 'Erro no backup local');
+                    }
+                }
+            }
+        }
+
+        // Show home page
+        function showHome() {
+            modulePage.classList.add('hidden');
+            homePage.classList.remove('hidden');
+        }
+
+        // Auto-save function
+        async function autoSave() {
+            try {
+                // Save to localStorage as immediate backup
+                localStorage.setItem('feedis_data', JSON.stringify(appData));
+                
+                // Try to save to Supabase (non-blocking)
+                window.supabaseClient.saveAllData(appData).catch(error => {
+                    console.warn('Auto-save to Supabase failed:', error.message);
+                });
+                
+                console.log('🔄 Auto-saved data');
+            } catch (error) {
+                console.error('Auto-save failed:', error.message);
+            }
+        }
+
+        // Add balance
+        function addBalance() {
+            const bankSelect = document.getElementById('bankSelect');
+            const balanceAmount = document.getElementById('balanceAmount');
+
+            if (!bankSelect.value || !balanceAmount.value) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            const amount = parseFloat(balanceAmount.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Por favor, insira um valor válido.');
+                return;
+            }
+
+            appData.balances.push({
+                id: Date.now(),
+                bank: bankSelect.value,
+                amount: amount,
+                date: document.getElementById('startDate').value || new Date().toISOString().split('T')[0]
+            });
+
+            // Clear form
+            bankSelect.value = '';
+            balanceAmount.value = '';
+
+            updateBalancesList();
+            autoSave(); // Auto-save after adding
+        }
+
+        // Update balances list
+        function updateBalancesList() {
+            const balancesList = document.getElementById('balancesList');
+            const totalBalance = document.getElementById('totalBalance');
+
+            if (appData.balances.length === 0) {
+                balancesList.innerHTML = '<p class="text-sm text-gray-500">Nenhum saldo adicionado.</p>';
+                totalBalance.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.balances.forEach((balance, index) => {
+                html += `
+                    <div class="flex justify-between items-center p-2 rounded-md bg-white shadow-sm mb-2">
+                        <div class="flex items-center">
+                            <span class="font-medium">${balance.bankName} (${balance.bankCode})</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-gray-800 mr-4">${formatCurrency(balance.amount)}</span>
+                            <button onclick="removeBalance(${index})" class="text-red-500 hover:text-red-700">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+                total += balance.amount;
+            });
+
+            balancesList.innerHTML = html;
+            totalBalance.textContent = formatCurrency(total);
+        }
+
+        // Remove balance
+        function removeBalance(index) {
+            appData.balances.splice(index, 1);
+            updateBalancesList();
+            autoSave(); // Auto-save after removing
+        }
+
+        // Add revenue
+        function addRevenue() {
+            const clientName = document.getElementById('clientName');
+            const documentType = document.getElementById('documentType');
+            const documentNumber = document.getElementById('documentNumber');
+            const issueDate = document.getElementById('issueDate');
+            const dueDate = document.getElementById('dueDate');
+            const revenueType = document.getElementById('revenueType');
+            const revenueAmount = document.getElementById('revenueAmount');
+
+            if (!clientName.value || !documentNumber.value || !revenueAmount.value) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+
+            const amount = parseFloat(revenueAmount.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Por favor, insira um valor válido.');
+                return;
+            }
+
+            const creditDate = calculateNextBusinessDay(dueDate.value);
+
+            appData.revenues.push({
+                id: Date.now(),
+                clientName: clientName.value,
+                documentType: documentType.value,
+                documentNumber: documentNumber.value,
+                issueDate: issueDate.value,
+                dueDate: dueDate.value,
+                creditDate: creditDate,
+                type: revenueType.value,
+                amount: amount
+            });
+
+            // Clear form
+            clientName.value = '';
+            documentNumber.value = '';
+            revenueAmount.value = '';
+
+            updateRevenuesList();
+            autoSave(); // Auto-save after adding
+        }
+
+        // Remove revenue
+        function removeRevenue(index) {
+            appData.revenues.splice(index, 1);
+            updateRevenuesList();
+            autoSave(); // Auto-save after removing
+        }
+
+        // Update revenues list
+        function updateRevenuesList() {
+            const revenuesList = document.getElementById('revenuesList');
+            const totalRevenues = document.getElementById('totalRevenues');
+
+            if (appData.revenues.length === 0) {
+                revenuesList.innerHTML = '<p class="text-sm text-gray-500">Nenhuma receita adicionada.</p>';
+                totalRevenues.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.revenues.forEach((revenue, index) => {
+                html += `
+                    <div class="border rounded-md p-3 mb-2 bg-white shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800">${revenue.clientName}</div>
+                                <div class="text-sm text-gray-600">
+                                    ${revenue.documentType} ${revenue.documentNumber} | ${revenue.type}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    Emissão: ${new Date(revenue.issueDate).toLocaleDateString('pt-BR')} | 
+                                    Vencimento: ${new Date(revenue.dueDate).toLocaleDateString('pt-BR')} |
+                                    Crédito: ${new Date(revenue.creditDate).toLocaleDateString('pt-BR')}
+                                </div>
+                            </div>
+                            <div class="flex items-center ml-4">
+                                <span class="font-bold text-gray-800 mr-4">${formatCurrency(revenue.amount)}</span>
+                                <button onclick="removeRevenue(${index})" class="text-red-500 hover:text-red-700">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                total += revenue.amount;
+            });
+
+            revenuesList.innerHTML = html;
+            totalRevenues.textContent = formatCurrency(total);
+        }
+
+        // Update receipts module
+        function updateReceiptsModule() {
+            updateRevenueSelect();
+            updateReceiptsSummary();
+            updateReceiptsList();
+        }
+
+        // Update revenue select dropdown
+        function updateRevenueSelect() {
+            const revenueSelect = document.getElementById('revenueSelect');
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Filter revenues that are not yet received
+            const availableRevenues = appData.revenues.filter(revenue => {
+                const isReceived = appData.receipts.some(receipt => receipt.revenueId === revenue.id);
+                return !isReceived;
+            });
+
+            if (availableRevenues.length === 0) {
+                revenueSelect.innerHTML = '<option value="">Nenhuma receita pendente encontrada</option>';
+                document.getElementById('receivedAmount').value = '';
+                return;
+            }
+
+            let html = '<option value="">Selecione uma receita...</option>';
+            availableRevenues.forEach(revenue => {
+                const isOverdue = new Date(revenue.dueDate) < new Date(today);
+                const statusIcon = isOverdue ? '⚠️' : '📅';
+                html += `<option value="${revenue.id}">${statusIcon} ${revenue.clientName} - ${revenue.documentType} ${revenue.documentNumber} - ${formatCurrency(revenue.amount)}</option>`;
+            });
+
+            revenueSelect.innerHTML = html;
+        }
+
+        // Update receipts summary
+        function updateReceiptsSummary() {
+            const today = new Date().toISOString().split('T')[0];
+            let pending = 0;
+            let received = 0;
+            let overdue = 0;
+            let totalValue = 0;
+
+            appData.revenues.forEach(revenue => {
+                const isReceived = appData.receipts.some(receipt => receipt.revenueId === revenue.id);
+                const isOverdue = new Date(revenue.dueDate) < new Date(today);
+
+                if (isReceived) {
+                    received++;
+                } else if (isOverdue) {
+                    overdue++;
+                } else {
+                    pending++;
+                }
+                totalValue += revenue.amount;
+            });
+
+            document.getElementById('totalPending').textContent = pending;
+            document.getElementById('totalReceived').textContent = received;
+            document.getElementById('totalOverdue').textContent = overdue;
+            document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+        }
+
+        // Update receipts list
+        function updateReceiptsList() {
+            const receiptsList = document.getElementById('receiptsList');
+            const totalReceivedAmount = document.getElementById('totalReceivedAmount');
+
+            if (appData.receipts.length === 0) {
+                receiptsList.innerHTML = '<p class="text-sm text-gray-500">Nenhum recebimento confirmado.</p>';
+                totalReceivedAmount.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.receipts.forEach((receipt, index) => {
+                const revenue = appData.revenues.find(r => r.id === receipt.revenueId);
+                html += `
+                    <div class="border rounded-md p-3 mb-2 bg-white shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800">${revenue?.clientName || 'Cliente não encontrado'}</div>
+                                <div class="text-sm text-gray-600">
+                                    ${revenue?.documentType} ${revenue?.documentNumber} | ${receipt.paymentMethod}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    Data: ${new Date(receipt.receiptDate).toLocaleDateString('pt-BR')}
+                                    ${receipt.notes ? `| Obs: ${receipt.notes}` : ''}
+                                </div>
+                            </div>
+                            <div class="flex items-center ml-4">
+                                <span class="font-bold text-green-600 mr-4">${formatCurrency(receipt.amount)}</span>
+                                <button onclick="removeReceipt(${index})" class="text-red-500 hover:text-red-700">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                total += receipt.amount;
+            });
+
+            receiptsList.innerHTML = html;
+            totalReceivedAmount.textContent = formatCurrency(total);
+        }
+
+        // Confirm receipt
+        function confirmReceipt() {
+            const revenueSelect = document.getElementById('revenueSelect');
+            const receiptDate = document.getElementById('receiptDate');
+            const receivedAmount = document.getElementById('receivedAmount');
+            const paymentMethod = document.getElementById('paymentMethod');
+            const receiptNotes = document.getElementById('receiptNotes');
+
+            if (!revenueSelect.value || !receiptDate.value) {
+                alert('Por favor, selecione uma receita e informe a data do recebimento.');
+                return;
+            }
+
+            const revenueId = parseInt(revenueSelect.value);
+            const revenue = appData.revenues.find(r => r.id === revenueId);
+
+            if (!revenue) {
+                alert('Receita não encontrada.');
+                return;
+            }
+
+            appData.receipts.push({
+                id: Date.now(),
+                revenueId: revenueId,
+                receiptDate: receiptDate.value,
+                amount: revenue.amount,
+                paymentMethod: paymentMethod.value,
+                notes: receiptNotes.value
+            });
+
+            // Clear form
+            revenueSelect.value = '';
+            receiptDate.value = '';
+            receivedAmount.value = '';
+            receiptNotes.value = '';
+
+            updateReceiptsModule();
+            autoSave(); // Auto-save after confirming
+        }
+
+        // Remove receipt
+        function removeReceipt(index) {
+            appData.receipts.splice(index, 1);
+            updateReceiptsModule();
+            autoSave(); // Auto-save after removing
+        }
+
+        // Suppliers functions
+        function addSupplier() {
+            const supplierName = document.getElementById('supplierName');
+            const cashFlowType = document.getElementById('cashFlowType');
+            const supplierType = document.getElementById('supplierType');
+
+            if (!supplierName.value || !cashFlowType.value || !supplierType.value) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            appData.suppliers.push({
+                id: Date.now(),
+                name: supplierName.value,
+                cashFlowType: cashFlowType.value,
+                supplierType: supplierType.value
+            });
+
+            // Clear form
+            supplierName.value = '';
+            cashFlowType.value = 'Fluxo de Caixa Operacional';
+            supplierType.value = '';
+
+            updateSuppliersList();
+            autoSave(); // Auto-save after adding
+        }
+
+        function updateSuppliersList() {
+            const suppliersList = document.getElementById('suppliersList');
+            const totalSuppliers = document.getElementById('totalSuppliers');
+
+            if (appData.suppliers.length === 0) {
+                suppliersList.innerHTML = '<p class="text-sm text-gray-500">Nenhum fornecedor cadastrado.</p>';
+                totalSuppliers.textContent = '0';
+                return;
+            }
+
+            let html = '';
+            appData.suppliers.forEach((supplier, index) => {
+                html += `
+                    <div class="flex justify-between items-center p-2 rounded-md bg-white shadow-sm mb-2">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800">${supplier.name}</div>
+                            <div class="text-sm text-gray-600">${supplier.supplierType} | ${supplier.cashFlowType}</div>
+                        </div>
+                        <button onclick="removeSupplier(${index})" class="text-red-500 hover:text-red-700">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+            });
+
+            suppliersList.innerHTML = html;
+            totalSuppliers.textContent = appData.suppliers.length;
+        }
+
+        function removeSupplier(index) {
+            appData.suppliers.splice(index, 1);
+            updateSuppliersList();
+            autoSave(); // Auto-save after removing
+        }
+
+        // Outflows functions
+        function updateOutflowsModule() {
+            updateOutflowSupplierSelect();
+            updateOutflowsList();
+        }
+
+        function updateOutflowSupplierSelect() {
+            const outflowSupplier = document.getElementById('outflowSupplier');
+            
+            if (appData.suppliers.length === 0) {
+                outflowSupplier.innerHTML = '<option value="">Cadastre fornecedores primeiro...</option>';
+                return;
+            }
+
+            let html = '<option value="">Selecione um fornecedor...</option>';
+            appData.suppliers.forEach(supplier => {
+                html += `<option value="${supplier.id}">${supplier.name}</option>`;
+            });
+
+            outflowSupplier.innerHTML = html;
+        }
+
+        function addOutflow() {
+            const outflowSupplier = document.getElementById('outflowSupplier');
+            const outflowDescription = document.getElementById('outflowDescription');
+            const outflowDate = document.getElementById('outflowDate');
+            const outflowAmount = document.getElementById('outflowAmount');
+            const outflowPaymentMethod = document.getElementById('outflowPaymentMethod');
+
+            if (!outflowSupplier.value || !outflowDescription.value || !outflowDate.value || !outflowAmount.value) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            const amount = parseFloat(outflowAmount.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Por favor, insira um valor válido.');
+                return;
+            }
+
+            const supplier = appData.suppliers.find(s => s.id === parseInt(outflowSupplier.value));
+
+            appData.outflows.push({
+                id: Date.now(),
+                supplierId: parseInt(outflowSupplier.value),
+                supplierName: supplier?.name || 'Fornecedor não encontrado',
+                description: outflowDescription.value,
+                date: outflowDate.value,
+                amount: amount,
+                paymentMethod: outflowPaymentMethod.value
+            });
+
+            // Clear form
+            outflowSupplier.value = '';
+            outflowDescription.value = '';
+            outflowDate.value = '';
+            outflowAmount.value = '';
+            outflowPaymentMethod.value = 'Dinheiro';
+
+            updateOutflowsList();
+            autoSave(); // Auto-save after adding
+        }
+
+        function updateOutflowsList() {
+            const outflowsList = document.getElementById('outflowsList');
+            const totalOutflows = document.getElementById('totalOutflows');
+
+            if (appData.outflows.length === 0) {
+                outflowsList.innerHTML = '<p class="text-sm text-gray-500">Nenhum pagamento registrado.</p>';
+                totalOutflows.textContent = 'R$ 0,00';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            appData.outflows.forEach((outflow, index) => {
+                html += `
+                    <div class="border rounded-md p-3 mb-2 bg-white shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800">${outflow.supplierName}</div>
+                                <div class="text-sm text-gray-600">${outflow.description} | ${outflow.paymentMethod}</div>
+                                <div class="text-sm text-gray-500">Data: ${new Date(outflow.date).toLocaleDateString('pt-BR')}</div>
+                            </div>
+                            <div class="flex items-center ml-4">
+                                <span class="font-bold text-red-600 mr-4">${formatCurrency(outflow.amount)}</span>
+                                <button onclick="removeOutflow(${index})" class="text-red-500 hover:text-red-700">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                total += outflow.amount;
+            });
+
+            outflowsList.innerHTML = html;
+            totalOutflows.textContent = formatCurrency(total);
+        }
+
+        function removeOutflow(index) {
+            appData.outflows.splice(index, 1);
+            updateOutflowsList();
+            autoSave(); // Auto-save after removing
+        }
+
+        // Overdue functions
+        function updateOverdueModule() {
+            updateOverdueList();
+        }
+
+        function updateOverdueList() {
+            const overdueList = document.getElementById('overdueList');
+            const overdueCount = document.getElementById('overdueCount');
+            const overdueValue = document.getElementById('overdueValue');
+            const avgDelayDays = document.getElementById('avgDelayDays');
+
+            const today = new Date();
+            const overdueRevenues = appData.revenues.filter(revenue => {
+                const isReceived = appData.receipts.some(receipt => receipt.revenueId === revenue.id);
+                const isOverdue = new Date(revenue.dueDate) < today && !isReceived;
+                return isOverdue;
+            });
+
+            if (overdueRevenues.length === 0) {
+                overdueList.innerHTML = '<p class="text-sm text-gray-500">Nenhum título vencido encontrado.</p>';
+                overdueCount.textContent = '0';
+                overdueValue.textContent = 'R$ 0,00';
+                avgDelayDays.textContent = '0';
+                return;
+            }
+
+            let html = '';
+            let totalValue = 0;
+            let totalDelayDays = 0;
+
+            overdueRevenues.forEach(revenue => {
+                const overdueDays = Math.floor((today - new Date(revenue.dueDate)) / (1000 * 60 * 60 * 24));
+                totalDelayDays += overdueDays;
+                totalValue += revenue.amount;
+
+                html += `
+                    <div class="border border-red-200 rounded-md p-3 mb-2 bg-red-50">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-red-800">${revenue.clientName}</div>
+                                <div class="text-sm text-red-600">${revenue.documentType} ${revenue.documentNumber}</div>
+                                <div class="text-sm text-red-500">
+                                    Vencimento: ${new Date(revenue.dueDate).toLocaleDateString('pt-BR')} | 
+                                    ${overdueDays} dias em atraso
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-red-600">${formatCurrency(revenue.amount)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            overdueList.innerHTML = html;
+            overdueCount.textContent = overdueRevenues.length;
+            overdueValue.textContent = formatCurrency(totalValue);
+            avgDelayDays.textContent = Math.round(totalDelayDays / overdueRevenues.length);
+        }
+
+        // Report functions
+        function updateReportModule() {
+            // Set default dates
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            document.getElementById('reportStartDate').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('reportEndDate').value = today.toISOString().split('T')[0];
+            
+            // Generate initial report
+            generateCashFlowReport();
+        }
+
+        function generateCashFlowReport() {
+            const startDate = new Date(document.getElementById('reportStartDate').value);
+            const endDate = new Date(document.getElementById('reportEndDate').value);
+            
+            if (startDate > endDate) {
+                alert('A data inicial não pode ser maior que a data final.');
+                return;
+            }
+
+            // Filter data by date range
+            const filteredReceipts = appData.receipts.filter(receipt => {
+                const receiptDate = new Date(receipt.receiptDate);
+                return receiptDate >= startDate && receiptDate <= endDate;
+            });
+
+            const filteredOutflows = appData.outflows.filter(outflow => {
+                const outflowDate = new Date(outflow.date);
+                return outflowDate >= startDate && outflowDate <= endDate;
+            });
+
+            // Calculate totals
+            const initialBalance = appData.balances.reduce((sum, balance) => sum + balance.amount, 0);
+            const totalInflows = filteredReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+            const totalOutflows = filteredOutflows.reduce((sum, outflow) => sum + outflow.amount, 0);
+            const finalBalance = initialBalance + totalInflows - totalOutflows;
+
+            // Update summary cards
+            document.getElementById('reportInitialBalance').textContent = formatCurrency(initialBalance);
+            document.getElementById('reportTotalInflows').textContent = formatCurrency(totalInflows);
+            document.getElementById('reportTotalOutflows').textContent = formatCurrency(totalOutflows);
+            document.getElementById('reportFinalBalance').textContent = formatCurrency(finalBalance);
+
+            // Generate cash flow table
+            generateCashFlowTable(startDate, endDate, initialBalance, filteredReceipts, filteredOutflows);
+
+            // Update charts
+            updateCharts(totalInflows, totalOutflows, finalBalance);
+
+            // Update generated date
+            document.getElementById('reportGeneratedDate').textContent = 
+                `Relatório gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`;
+        }
+
+        function generateCashFlowTable(startDate, endDate, initialBalance, receipts, outflows) {
+            const tableBody = document.getElementById('cashFlowTableBody');
+            
+            // Combine all transactions
+            let transactions = [];
+            
+            // Add initial balance
+            transactions.push({
+                date: startDate,
+                description: 'Saldo Inicial',
+                type: 'Saldo Inicial',
+                inflow: initialBalance,
+                outflow: 0,
+                balance: initialBalance
+            });
+
+            // Add receipts
+            receipts.forEach(receipt => {
+                const revenue = appData.revenues.find(r => r.id === receipt.revenueId);
+                transactions.push({
+                    date: new Date(receipt.receiptDate),
+                    description: revenue ? `${revenue.clientName} - ${revenue.documentType} ${revenue.documentNumber}` : 'Recebimento',
+                    type: 'Entrada',
+                    inflow: receipt.amount,
+                    outflow: 0,
+                    balance: 0 // Will be calculated
+                });
+            });
+
+            // Add outflows
+            outflows.forEach(outflow => {
+                transactions.push({
+                    date: new Date(outflow.date),
+                    description: `${outflow.supplierName} - ${outflow.description}`,
+                    type: 'Saída',
+                    inflow: 0,
+                    outflow: outflow.amount,
+                    balance: 0 // Will be calculated
+                });
+            });
+
+            // Sort by date
+            transactions.sort((a, b) => a.date - b.date);
+
+            // Calculate running balance
+            let runningBalance = initialBalance;
+            transactions.forEach(transaction => {
+                if (transaction.type !== 'Saldo Inicial') {
+                    runningBalance = runningBalance + transaction.inflow - transaction.outflow;
+                    transaction.balance = runningBalance;
+                }
+            });
+
+            // Generate table rows
+            let html = '';
+            transactions.forEach(transaction => {
+                const rowClass = transaction.type === 'Saldo Inicial' ? 'bg-blue-50 font-bold' : 
+                                transaction.type === 'Entrada' ? 'bg-green-50' : 'bg-red-50';
+                
+                html += `
+                    <tr class="${rowClass}">
+                        <td class="border border-gray-300 px-4 py-2 text-sm">${new Date(transaction.date).toLocaleDateString('pt-BR')}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm">${transaction.description}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium
+                                ${transaction.type === 'Saldo Inicial' ? 'bg-blue-100 text-blue-800' : 
+                                  transaction.type === 'Entrada' ? 'bg-green-100 text-green-800' : 
+                                  'bg-red-100 text-red-800'}">
+                                ${transaction.type}
+                            </span>
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm text-right text-green-600 font-medium">
+                            ${transaction.inflow > 0 ? formatCurrency(transaction.inflow) : ''}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm text-right text-red-600 font-medium">
+                            ${transaction.outflow > 0 ? formatCurrency(transaction.outflow) : ''}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm text-right font-bold ${transaction.balance >= 0 ? 'text-green-700' : 'text-red-700'}">
+                            ${formatCurrency(transaction.balance)}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableBody.innerHTML = html || '<tr><td colspan="6" class="text-center py-4 text-gray-500">Nenhuma transação encontrada no período.</td></tr>';
+
+            // Update footer totals
+            const totalInflows = receipts.reduce((sum, r) => sum + r.amount, 0);
+            const totalOutflows = outflows.reduce((sum, o) => sum + o.amount, 0);
+            const finalBalance = initialBalance + totalInflows - totalOutflows;
+
+            document.getElementById('totalInflowsFooter').textContent = formatCurrency(totalInflows);
+            document.getElementById('totalOutflowsFooter').textContent = formatCurrency(totalOutflows);
+            document.getElementById('finalBalanceFooter').textContent = formatCurrency(finalBalance);
+        }
+
+        function updateCharts(totalInflows, totalOutflows, finalBalance) {
+            // Update bar charts
+            const maxValue = Math.max(totalInflows, totalOutflows, 1);
+            
+            const inflowsBar = document.getElementById('inflowsBar');
+            const outflowsBar = document.getElementById('outflowsBar');
+            
+            const inflowsPercentage = (totalInflows / maxValue) * 100;
+            const outflowsPercentage = (totalOutflows / maxValue) * 100;
+            
+            inflowsBar.style.width = inflowsPercentage + '%';
+            inflowsBar.querySelector('span').textContent = formatCurrency(totalInflows);
+            
+            outflowsBar.style.width = outflowsPercentage + '%';
+            outflowsBar.querySelector('span').textContent = formatCurrency(totalOutflows);
+
+            // Update percentage distribution
+            const totalMovement = totalInflows + totalOutflows;
+            
+            if (totalMovement > 0) {
+                document.getElementById('inflowsPercentage').textContent = 
+                    ((totalInflows / totalMovement) * 100).toFixed(1) + '%';
+                document.getElementById('outflowsPercentage').textContent = 
+                    ((totalOutflows / totalMovement) * 100).toFixed(1) + '%';
+                
+                const netCash = totalInflows - totalOutflows;
+                const netPercentage = Math.abs((netCash / totalMovement) * 100).toFixed(1);
+                const netSign = netCash >= 0 ? '+' : '-';
+                document.getElementById('netPercentage').textContent = 
+                    `${netSign}${netPercentage}%`;
+            } else {
+                document.getElementById('inflowsPercentage').textContent = '0%';
+                document.getElementById('outflowsPercentage').textContent = '0%';
+                document.getElementById('netPercentage').textContent = '0%';
+            }
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        function exportReportPDF() {
+            alert('Funcionalidade de exportação PDF em desenvolvimento. Use a impressão (Ctrl+P) para salvar como PDF.');
+        }
+
+        function exportReportExcel() {
+            // Create CSV content
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            
+            let csvContent = 'Relatório de Fluxo de Caixa\n';
+            csvContent += `Período: ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}\n\n`;
+            csvContent += 'Data,Descrição,Tipo,Entrada,Saída,Saldo Acumulado\n';
+            
+            // Get table data
+            const rows = document.querySelectorAll('#cashFlowTableBody tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length === 6) {
+                    const rowData = [
+                        cells[0].textContent,
+                        `"${cells[1].textContent}"`,
+                        cells[2].textContent.trim(),
+                        cells[3].textContent || '0',
+                        cells[4].textContent || '0',
+                        cells[5].textContent || '0'
+                    ];
+                    csvContent += rowData.join(',') + '\n';
+                }
+            });
+            
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `fluxo_caixa_${startDate}_${endDate}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load saved data on startup
+            loadSavedData();
+            
+            // Navigation buttons
+            document.getElementById('navHomeBtn').addEventListener('click', goToHome);
+            document.getElementById('wizardHomeBtn').addEventListener('click', goToHome);
+            document.getElementById('prevStepBtn').addEventListener('click', goToPrevStep);
+            document.getElementById('nextStepBtn').addEventListener('click', goToNextStep);
+            document.getElementById('quickSaveBtn').addEventListener('click', quickSave);
+            document.getElementById('quickExportBtn').addEventListener('click', quickExport);
+            
+            // Module navigation buttons
+            document.querySelectorAll('.nav-module-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const moduleId = this.dataset.module;
+                    showModule(moduleId);
+                });
+            });
+            
+            // Wizard step buttons
+            document.querySelectorAll('.wizard-step').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const moduleId = this.dataset.wizardStep;
+                    showModule(moduleId);
+                });
+            });
+            
+            // Home page module cards
+            document.querySelectorAll('.module-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const moduleId = this.dataset.module;
+                    showModule(moduleId);
+                });
+            });
+
+            // Revenue select change handler
+            const revenueSelect = document.getElementById('revenueSelect');
+            if (revenueSelect) {
+                revenueSelect.addEventListener('change', function() {
+                    const revenueId = parseInt(this.value);
+                    const revenue = appData.revenues.find(r => r.id === revenueId);
+                    const receivedAmount = document.getElementById('receivedAmount');
+                    
+                    if (revenue && receivedAmount) {
+                        receivedAmount.value = revenue.amount.toFixed(2);
+                    } else if (receivedAmount) {
+                        receivedAmount.value = '';
+                    }
+                });
+            }
+        });
+
+        // Multiple back buttons
+        document.querySelectorAll('#backBtn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Check if we're in a module and go to previous step
+                if (currentStep !== 'home') {
+                    goToPrevStep();
+                } else {
+                    goToHome();
+                }
+            });
+        });
+
+        // Initialize
+        console.log('Feedis - Gerenciador de Fluxo de Caixa carregado com sucesso!');
+    </script>
+</body>
+</html>
